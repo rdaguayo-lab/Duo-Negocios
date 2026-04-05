@@ -1,3 +1,4 @@
+// DUO Control de Negocios v2.1 — Proveedores mejorados + Informes PDF
 import { useState, useMemo, useEffect } from "react";
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from "recharts";
 import { guardarFirebase, escucharFirebase } from './firebase';
