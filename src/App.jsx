@@ -1,4 +1,4 @@
-// DUO Control de Negocios v2.5 — editar registros, boletas IVA, informes diario/rango
+// DUO Control de Negocios v2.6 — vacaciones editar/cancelar, fechas destacadas
 import { useState, useMemo, useEffect } from "react";
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from "recharts";
 import { guardarFirebase, escucharFirebase } from './firebase';
@@ -1506,21 +1506,75 @@ function GastosPanel({data,mes,setMes,guardar}){
 }
 
 // ── TRABAJADORES PANEL ────────────────────────────────────
-function TrabajadoresPanel({data,updTrab,aprobar,rechazar}){
+function TrabajadoresPanel({data,updTrab,aprobar,rechazar,guardar}){
   const [sel,setSel]=useState("carahue_t1");
   const [ed,setEd]=useState(false);
   const [form,setForm]=useState({});
+  const [editVacId,setEditVacId]=useState(null);
+  const [editVacF,setEditVacF]=useState({desde:"",hasta:"",motivo:""});
   const LISTA=[{id:"carahue_t1",label:"🌿 Carahue — Turno 1"},{id:"carahue_t2",label:"🌿 Carahue — Turno 2"},{id:"temuco",label:"🏙️ Temuco — Trabajadora"}];
   const w=data.trabajadores?.[sel]||{};
   useEffect(()=>setForm({nombre:w.nombre||"",contrato:w.contrato||"indefinido",fechaIngreso:w.fechaIngreso||""}),[sel,data]);
   const anos=anosD(w.fechaIngreso); const puede=anos>=1;
   const dispD=Math.max(0,(w.diasVac||15)-(w.diasUsados||0));
   const pend=(w.solicitudes||[]).filter(s=>s.estado==="pendiente");
+  const aprobadas=(w.solicitudes||[]).filter(s=>s.estado==="aprobada");
+
+  // Revocar aprobación
+  const revocar=(sid)=>{
+    const t=JSON.parse(JSON.stringify(data.trabajadores||{}));
+    const s=t[sel].solicitudes.find(x=>x.id===sid);
+    t[sel].diasUsados=Math.max(0,(t[sel].diasUsados||0)-s.dias);
+    s.estado="rechazada";
+    guardar({...data,trabajadores:t});
+  };
+
+  // Guardar edición de vacaciones
+  const guardarEditVac=()=>{
+    if(!editVacF.desde||!editVacF.hasta)return;
+    const nuevosDias=diasHabiles(editVacF.desde,editVacF.hasta);
+    const t=JSON.parse(JSON.stringify(data.trabajadores||{}));
+    const s=t[sel].solicitudes.find(x=>x.id===editVacId);
+    const diffDias=nuevosDias-s.dias;
+    t[sel].diasUsados=Math.max(0,(t[sel].diasUsados||0)+diffDias);
+    s.desde=editVacF.desde; s.hasta=editVacF.hasta;
+    s.motivo=editVacF.motivo; s.dias=nuevosDias;
+    guardar({...data,trabajadores:t});
+    setEditVacId(null);
+  };
+
+  // Calcular si trabajador está de vacaciones hoy
+  const hoyStr=hoy();
+  const vacHoy=aprobadas.find(s=>hoyStr>=s.desde&&hoyStr<=s.hasta);
+  const proxVac=aprobadas.filter(s=>s.desde>hoyStr).sort((a,b)=>a.desde.localeCompare(b.desde))[0];
+
   return(
     <div>
       <div style={{display:"flex",gap:8,marginBottom:16,flexWrap:"wrap"}}>
-        {LISTA.map(wk=>(<button key={wk.id} onClick={()=>{setSel(wk.id);setEd(false);}} style={{padding:"6px 14px",borderRadius:20,border:"1px solid",borderColor:sel===wk.id?"#f97316":"#ffffff12",background:sel===wk.id?"#f9731614":"transparent",color:sel===wk.id?"#f97316":"#ffffff44",fontSize:11,fontWeight:700,cursor:"pointer"}}>{wk.label}</button>))}
+        {LISTA.map(wk=>(<button key={wk.id} onClick={()=>{setSel(wk.id);setEd(false);setEditVacId(null);}} style={{padding:"6px 14px",borderRadius:20,border:"1px solid",borderColor:sel===wk.id?"#f97316":"#ffffff12",background:sel===wk.id?"#f9731614":"transparent",color:sel===wk.id?"#f97316":"#ffffff44",fontSize:11,fontWeight:700,cursor:"pointer"}}>{wk.label}</button>))}
       </div>
+
+      {/* Banner estado vacaciones */}
+      {vacHoy&&(
+        <div style={{background:"linear-gradient(135deg,#3b82f620,#60a5fa10)",border:"2px solid #3b82f650",borderRadius:14,padding:"14px 16px",marginBottom:14,display:"flex",alignItems:"center",gap:12}}>
+          <span style={{fontSize:28}}>🏖️</span>
+          <div>
+            <div style={{fontSize:13,fontWeight:900,color:"#60a5fa"}}>DE VACACIONES HOY</div>
+            <div style={{fontSize:11,color:"#ffffff77",marginTop:2}}>Salió: <b style={{color:"#4ade80"}}>{vacHoy.desde}</b> · Regresa: <b style={{color:"#fbbf24"}}>{vacHoy.hasta}</b></div>
+            <div style={{fontSize:11,color:"#ffffff44"}}>{vacHoy.dias} días hábiles · {vacHoy.motivo||"Sin motivo"}</div>
+          </div>
+        </div>
+      )}
+      {!vacHoy&&proxVac&&(
+        <div style={{background:"#fbbf2410",border:"1px solid #fbbf2425",borderRadius:14,padding:"12px 16px",marginBottom:14,display:"flex",alignItems:"center",gap:12}}>
+          <span style={{fontSize:22}}>📅</span>
+          <div>
+            <div style={{fontSize:12,fontWeight:800,color:"#fbbf24"}}>PRÓXIMAS VACACIONES</div>
+            <div style={{fontSize:11,color:"#ffffff66",marginTop:2}}>Sale: <b style={{color:"#4ade80"}}>{proxVac.desde}</b> · Regresa: <b style={{color:"#f87171"}}>{proxVac.hasta}</b> · {proxVac.dias} días</div>
+          </div>
+        </div>
+      )}
+
       <div style={{background:"#0d1525",borderRadius:16,padding:18,marginBottom:14,border:"1px solid #ffffff0c"}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
           <div style={{fontSize:14,fontWeight:800}}>{w.nombre||"Sin nombre"}</div>
@@ -1533,13 +1587,89 @@ function TrabajadoresPanel({data,updTrab,aprobar,rechazar}){
         <div style={{fontSize:13,fontWeight:800,color:"#60a5fa",marginBottom:14}}>🏖️ Vacaciones</div>
         {!puede?(<div style={{textAlign:"center",padding:20,color:"#ffffff30",fontSize:12}}>⏳ Se habilitan al cumplir 1 año.{w.fechaIngreso&&<><br/><span style={{color:"#ffffff44"}}>Faltan ~{Math.max(0,Math.ceil(365-diasD(w.fechaIngreso)))} días</span></>}</div>):(
           <div>
-            <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,marginBottom:12}}>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,marginBottom:14}}>
               <div style={{background:"#60a5fa12",borderRadius:10,padding:"10px",textAlign:"center"}}><div style={{fontSize:9,color:"#60a5fa55"}}>Total</div><div style={{fontSize:20,fontWeight:900,color:"#60a5fa"}}>{w.diasVac||15}</div></div>
               <div style={{background:"#f8717112",borderRadius:10,padding:"10px",textAlign:"center"}}><div style={{fontSize:9,color:"#f8717155"}}>Usados</div><div style={{fontSize:20,fontWeight:900,color:"#f87171"}}>{w.diasUsados||0}</div></div>
               <div style={{background:"#4ade8012",borderRadius:10,padding:"10px",textAlign:"center"}}><div style={{fontSize:9,color:"#4ade8055"}}>Disponibles</div><div style={{fontSize:20,fontWeight:900,color:"#4ade80"}}>{dispD}</div></div>
             </div>
-            {pend.length>0&&<div style={{marginBottom:14}}><div style={{fontSize:10,color:"#fbbf2466",letterSpacing:2,marginBottom:8}}>PENDIENTES</div>{pend.map(s=>(<div key={s.id} style={{background:"#fbbf2410",border:"1px solid #fbbf2420",borderRadius:10,padding:"10px 12px",marginBottom:8}}><div style={{fontSize:12,fontWeight:600}}>{s.dias} días hábiles — {s.desde} al {s.hasta}</div><div style={{fontSize:10,color:"#ffffff44",marginBottom:8}}>{s.motivo||"Sin motivo"}</div><div style={{display:"flex",gap:8}}><button onClick={()=>aprobar(sel,s.id)} style={{flex:1,padding:"7px",borderRadius:8,border:"none",background:"#22c55e20",color:"#4ade80",fontWeight:700,fontSize:12,cursor:"pointer"}}>✅ Aprobar</button><button onClick={()=>rechazar(sel,s.id)} style={{flex:1,padding:"7px",borderRadius:8,border:"none",background:"#ef444420",color:"#f87171",fontWeight:700,fontSize:12,cursor:"pointer"}}>❌ Rechazar</button></div></div>))}</div>}
-            {(w.solicitudes||[]).filter(s=>s.estado!=="pendiente").length>0&&<div><div style={{fontSize:10,color:"#ffffff25",letterSpacing:2,marginBottom:8}}>HISTORIAL</div>{[...(w.solicitudes||[])].filter(s=>s.estado!=="pendiente").reverse().map(s=>(<div key={s.id} style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:"1px solid #ffffff07",fontSize:11}}><span style={{color:s.estado==="aprobada"?"#4ade80":"#f87171"}}>{s.estado==="aprobada"?"✅":"❌"}</span><span style={{color:"#ffffff44"}}>{s.dias} días hábiles ({s.desde}→{s.hasta})</span><Tag label={s.estado} color={s.estado==="aprobada"?"#4ade80":"#f87171"}/></div>))}</div>}
+
+            {/* Pendientes */}
+            {pend.length>0&&<div style={{marginBottom:14}}>
+              <div style={{fontSize:10,color:"#fbbf2466",letterSpacing:2,marginBottom:8}}>PENDIENTES</div>
+              {pend.map(s=>(
+                <div key={s.id} style={{background:"#fbbf2410",border:"1px solid #fbbf2420",borderRadius:10,padding:"10px 12px",marginBottom:8}}>
+                  <div style={{fontSize:12,fontWeight:600,marginBottom:2}}>📅 {s.dias} días hábiles</div>
+                  <div style={{fontSize:11,color:"#4ade80"}}>Sale: {s.desde}</div>
+                  <div style={{fontSize:11,color:"#f87171",marginBottom:6}}>Regresa: {s.hasta}</div>
+                  <div style={{fontSize:10,color:"#ffffff44",marginBottom:8}}>{s.motivo||"Sin motivo"}</div>
+                  <div style={{display:"flex",gap:8}}>
+                    <button onClick={()=>aprobar(sel,s.id)} style={{flex:1,padding:"7px",borderRadius:8,border:"none",background:"#22c55e20",color:"#4ade80",fontWeight:700,fontSize:12,cursor:"pointer"}}>✅ Aprobar</button>
+                    <button onClick={()=>rechazar(sel,s.id)} style={{flex:1,padding:"7px",borderRadius:8,border:"none",background:"#ef444420",color:"#f87171",fontWeight:700,fontSize:12,cursor:"pointer"}}>❌ Rechazar</button>
+                  </div>
+                </div>
+              ))}
+            </div>}
+
+            {/* Aprobadas */}
+            {aprobadas.length>0&&<div style={{marginBottom:14}}>
+              <div style={{fontSize:10,color:"#4ade8066",letterSpacing:2,marginBottom:8}}>APROBADAS</div>
+              {[...aprobadas].reverse().map(s=>(
+                <div key={s.id} style={{background:"#4ade8010",border:"1px solid #4ade8025",borderRadius:10,padding:"12px",marginBottom:8}}>
+                  {editVacId===s.id?(
+                    <div>
+                      <div style={{fontSize:11,fontWeight:700,color:"#4ade80",marginBottom:10}}>✏️ Modificar vacaciones</div>
+                      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:8}}>
+                        <div><Lbl>DESDE</Lbl><input type="date" value={editVacF.desde} onChange={e=>setEditVacF(f=>({...f,desde:e.target.value}))} style={{...IS,fontSize:12}}/></div>
+                        <div><Lbl>HASTA</Lbl><input type="date" value={editVacF.hasta} onChange={e=>setEditVacF(f=>({...f,hasta:e.target.value}))} style={{...IS,fontSize:12}}/></div>
+                      </div>
+                      {editVacF.desde&&editVacF.hasta&&<div style={{fontSize:11,color:"#60a5fa",marginBottom:8}}>Días hábiles: {diasHabiles(editVacF.desde,editVacF.hasta)}</div>}
+                      <Inp label="MOTIVO" value={editVacF.motivo} onChange={v=>setEditVacF(f=>({...f,motivo:v}))}/>
+                      <div style={{display:"flex",gap:8}}>
+                        <button onClick={guardarEditVac} style={{flex:1,padding:"8px",borderRadius:8,border:"none",background:"#4ade8020",color:"#4ade80",fontWeight:700,fontSize:12,cursor:"pointer"}}>💾 Guardar</button>
+                        <button onClick={()=>setEditVacId(null)} style={{flex:1,padding:"8px",borderRadius:8,border:"none",background:"#ffffff10",color:"#ffffff44",fontWeight:700,fontSize:12,cursor:"pointer"}}>Cancelar</button>
+                      </div>
+                    </div>
+                  ):(
+                    <div>
+                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
+                        <div>
+                          <div style={{fontSize:12,fontWeight:700,color:"#4ade80",marginBottom:4}}>✅ {s.dias} días hábiles</div>
+                          <div style={{display:"flex",gap:12}}>
+                            <div style={{background:"#22c55e20",borderRadius:8,padding:"5px 10px"}}>
+                              <div style={{fontSize:9,color:"#4ade8066"}}>🛫 SALE</div>
+                              <div style={{fontSize:13,fontWeight:900,color:"#4ade80"}}>{s.desde}</div>
+                            </div>
+                            <div style={{background:"#f9731620",borderRadius:8,padding:"5px 10px"}}>
+                              <div style={{fontSize:9,color:"#f9731666"}}>🛬 REGRESA</div>
+                              <div style={{fontSize:13,fontWeight:900,color:"#f97316"}}>{s.hasta}</div>
+                            </div>
+                          </div>
+                          {s.motivo&&<div style={{fontSize:10,color:"#ffffff44",marginTop:6}}>{s.motivo}</div>}
+                        </div>
+                        <div style={{display:"flex",gap:6}}>
+                          <button onClick={()=>{setEditVacId(s.id);setEditVacF({desde:s.desde,hasta:s.hasta,motivo:s.motivo||""});}} style={{background:"#3b82f620",border:"none",color:"#60a5fa",width:28,height:28,borderRadius:8,cursor:"pointer",fontSize:13}}>✏️</button>
+                          <button onClick={()=>revocar(s.id)} style={{background:"#ef444420",border:"none",color:"#f87171",width:28,height:28,borderRadius:8,cursor:"pointer",fontSize:13}}>✕</button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>}
+
+            {/* Historial rechazadas */}
+            {(w.solicitudes||[]).filter(s=>s.estado==="rechazada").length>0&&(
+              <div>
+                <div style={{fontSize:10,color:"#ffffff25",letterSpacing:2,marginBottom:8}}>HISTORIAL</div>
+                {[...(w.solicitudes||[])].filter(s=>s.estado==="rechazada").reverse().map(s=>(
+                  <div key={s.id} style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:"1px solid #ffffff07",fontSize:11}}>
+                    <span style={{color:"#f87171"}}>❌</span>
+                    <span style={{color:"#ffffff44"}}>{s.dias} días ({s.desde}→{s.hasta})</span>
+                    <Tag label="rechazada" color="#f87171"/>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -1808,7 +1938,7 @@ function VistaDueno({sesion,data,guardar,onSalir}){
             </div>
           </div>
         )}
-        {tab==="gastos"&&<GastosPanel data={data} mes={mes} setMes={setMes} guardar={guardar}/>}        {tab==="trabajadores"&&<TrabajadoresPanel data={data} updTrab={updTrab} aprobar={aprobar} rechazar={rechazar}/>}
+        {tab==="gastos"&&<GastosPanel data={data} mes={mes} setMes={setMes} guardar={guardar}/>}        {tab==="trabajadores"&&<TrabajadoresPanel data={data} updTrab={updTrab} aprobar={aprobar} rechazar={rechazar} guardar={guardar}/>}
         {tab==="mensajes"&&<PanelMensajes sesion={sesion} data={data} guardar={guardar}/>}
         {tab==="chat"&&<ChatDuenos sesion={sesion} data={data} guardar={guardar}/>}
         {tab==="notas"&&<PanelNotas sesion={sesion} data={data} guardar={guardar}/>}
@@ -2162,9 +2292,50 @@ function VistaVendedora({sesion,data,guardar,onSalir}){
               <div style={{background:"#fbbf2410",border:"1px solid #fbbf2425",borderRadius:10,padding:"10px 12px",marginBottom:14,fontSize:11,color:"#fbbf24"}}>⚠️ Las vacaciones deben solicitarse con <b>al menos 1 semana de anticipación</b>. Se cuentan solo <b>días hábiles</b> (lunes a viernes, excluye feriados de Chile).</div>
               {!puedeV?(<div style={{textAlign:"center",padding:20,color:"#ffffff30",fontSize:12}}>⏳ Se habilitan al cumplir 1 año.{worker.fechaIngreso&&<><br/><span style={{fontSize:11,color:"#ffffff44"}}>Faltan ~{Math.max(0,Math.ceil(365-diasD(worker.fechaIngreso)))} días</span></>}</div>):(
                 <div>
-                  <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,marginBottom:12}}><div style={{background:"#60a5fa12",borderRadius:10,padding:"10px",textAlign:"center"}}><div style={{fontSize:9,color:"#60a5fa55"}}>Total</div><div style={{fontSize:20,fontWeight:900,color:"#60a5fa"}}>{worker.diasVac||15}</div></div><div style={{background:"#f8717112",borderRadius:10,padding:"10px",textAlign:"center"}}><div style={{fontSize:9,color:"#f8717155"}}>Usados</div><div style={{fontSize:20,fontWeight:900,color:"#f87171"}}>{worker.diasUsados||0}</div></div><div style={{background:"#4ade8012",borderRadius:10,padding:"10px",textAlign:"center"}}><div style={{fontSize:9,color:"#4ade8055"}}>Disponibles</div><div style={{fontSize:20,fontWeight:900,color:"#4ade80"}}>{dispD}</div></div></div>
+                  <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,marginBottom:12}}>
+                    <div style={{background:"#60a5fa12",borderRadius:10,padding:"10px",textAlign:"center"}}><div style={{fontSize:9,color:"#60a5fa55"}}>Total</div><div style={{fontSize:20,fontWeight:900,color:"#60a5fa"}}>{worker.diasVac||15}</div></div>
+                    <div style={{background:"#f8717112",borderRadius:10,padding:"10px",textAlign:"center"}}><div style={{fontSize:9,color:"#f8717155"}}>Usados</div><div style={{fontSize:20,fontWeight:900,color:"#f87171"}}>{worker.diasUsados||0}</div></div>
+                    <div style={{background:"#4ade8012",borderRadius:10,padding:"10px",textAlign:"center"}}><div style={{fontSize:9,color:"#4ade8055"}}>Disponibles</div><div style={{fontSize:20,fontWeight:900,color:"#4ade80"}}>{dispD}</div></div>
+                  </div>
                   <Btn onClick={()=>setModal("vacaciones")} color="#3b82f6">+ Solicitar Vacaciones</Btn>
-                  {(worker.solicitudes||[]).length>0&&<div style={{marginTop:14}}><div style={{fontSize:10,color:"#ffffff22",letterSpacing:2,marginBottom:8}}>MIS SOLICITUDES</div>{[...(worker.solicitudes||[])].reverse().map(s=>(<div key={s.id} style={{background:"#ffffff06",borderRadius:10,padding:"10px 12px",marginBottom:6,display:"flex",justifyContent:"space-between",alignItems:"center"}}><div><div style={{fontSize:11,fontWeight:600}}>{s.dias} días hábiles — {s.desde} al {s.hasta}</div><div style={{fontSize:10,color:"#ffffff33"}}>{s.motivo||"Sin motivo"}</div></div><Tag label={s.estado} color={s.estado==="aprobada"?"#4ade80":s.estado==="rechazada"?"#f87171":"#fbbf24"}/></div>))}</div>}
+                  {(worker.solicitudes||[]).length>0&&(
+                    <div style={{marginTop:14}}>
+                      <div style={{fontSize:10,color:"#ffffff22",letterSpacing:2,marginBottom:8}}>MIS SOLICITUDES</div>
+                      {[...(worker.solicitudes||[])].reverse().map(s=>(
+                        <div key={s.id} style={{background:"#ffffff06",borderRadius:10,padding:"10px 12px",marginBottom:6,border:`1px solid ${s.estado==="aprobada"?"#4ade8020":s.estado==="rechazada"?"#f8717120":"#fbbf2420"}`}}>
+                          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:s.estado==="aprobada"?8:0}}>
+                            <div>
+                              <div style={{fontSize:11,fontWeight:600}}>{s.dias} días hábiles</div>
+                              <div style={{fontSize:11,color:"#4ade8088"}}>🛫 Sale: {s.desde}</div>
+                              <div style={{fontSize:11,color:"#f9731688"}}>🛬 Regresa: {s.hasta}</div>
+                              {s.motivo&&<div style={{fontSize:10,color:"#ffffff33"}}>{s.motivo}</div>}
+                            </div>
+                            <Tag label={s.estado} color={s.estado==="aprobada"?"#4ade80":s.estado==="rechazada"?"#f87171":"#fbbf24"}/>
+                          </div>
+                          {s.estado==="aprobada"&&(
+                            <button onClick={()=>{
+                              const t=JSON.parse(JSON.stringify(data.trabajadores||{}));
+                              const sol=t[wid].solicitudes.find(x=>x.id===s.id);
+                              t[wid].diasUsados=Math.max(0,(t[wid].diasUsados||0)-sol.dias);
+                              sol.estado="rechazada";
+                              guardar({...data,trabajadores:t});
+                            }} style={{width:"100%",padding:"6px",borderRadius:8,border:"1px solid #f8717130",background:"#f8717110",color:"#f87171",fontWeight:700,fontSize:11,cursor:"pointer",marginTop:4}}>
+                              ✕ Cancelar vacaciones (vuelvo antes)
+                            </button>
+                          )}
+                          {s.estado==="pendiente"&&(
+                            <button onClick={()=>{
+                              const t=JSON.parse(JSON.stringify(data.trabajadores||{}));
+                              t[wid].solicitudes=t[wid].solicitudes.filter(x=>x.id!==s.id);
+                              guardar({...data,trabajadores:t});
+                            }} style={{width:"100%",padding:"6px",borderRadius:8,border:"1px solid #f8717130",background:"#f8717110",color:"#f87171",fontWeight:700,fontSize:11,cursor:"pointer",marginTop:4}}>
+                              ✕ Retirar solicitud
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
