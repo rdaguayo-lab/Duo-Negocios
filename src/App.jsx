@@ -1,4 +1,4 @@
-// DUO Control de Negocios v2.1 — Proveedores mejorados + Informes PDF
+// DUO Control de Negocios v2.2 — Caja vendedoras + Proveedores + Informes PDF
 import { useState, useMemo, useEffect } from "react";
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from "recharts";
 import { guardarFirebase, escucharFirebase } from './firebase';
@@ -1876,7 +1876,7 @@ function VistaVendedora({sesion,data,guardar,onSalir}){
   const catA=CAT_GASTO.find(c=>c.id===gF.categoria);
   const msgNuevos=(data.mensajes||[]).filter(m=>m.de==="dueno"&&(m.para==="todos"||m.para===suc)&&!m.leido).length;
 
-  const TABS=[["registrar","📝 Registrar"],["historial","🕐 Hoy"],["cigarros","🚬 Cigarros"],["boletas","🧾 Boletas"],["vacaciones","🏖️ Vacaciones"],["mensajes","💬 Mensajes"],["notificar","📬 Notificar"],["proveedores","🏭 Proveedores"]];
+  const TABS=[["registrar","📝 Registrar"],["historial","🕐 Hoy"],["caja","💰 Mi Caja"],["cigarros","🚬 Cigarros"],["boletas","🧾 Boletas"],["vacaciones","🏖️ Vacaciones"],["mensajes","💬 Mensajes"],["notificar","📬 Notificar"],["proveedores","🏭 Proveedores"]];
 
   return(
     <div style={{minHeight:"100vh",background:"#07090f",fontFamily:"'DM Sans','Segoe UI',sans-serif",color:"#f0ece8"}}>
@@ -1920,6 +1920,109 @@ function VistaVendedora({sesion,data,guardar,onSalir}){
             {vHoy.length===0&&gHoy.length===0&&<Empty text="Sin registros hoy"/>}
           </div>
         )}
+
+        {tab==="caja"&&(()=>{
+          const [perCaja,setPerCaja]=useState("dia");
+          const PERS=[["dia","Hoy"],["semana","Semana"],["mes","Mes"],["año","Año"]];
+          const vP=filtroPer(vs,perCaja);
+          const gP2=filtroPer(gs,perCaja);
+          const cvP=filtroPer(sd.cigarros?.ventas||[],perCaja);
+          const cgP=filtroPer(sd.cigarros?.gastos||[],perCaja);
+          const tvP=vP.reduce((s,x)=>s+x.monto,0);
+          const tgP=gP2.reduce((s,x)=>s+x.monto,0);
+          const tcvP=cvP.reduce((s,x)=>s+x.monto,0);
+          const tcgP=cgP.reduce((s,x)=>s+x.monto,0);
+          const efP=vP.filter(x=>x.tipo==="efectivo").reduce((s,x)=>s+x.monto,0);
+          const tarP=vP.filter(x=>x.tipo==="tarjeta").reduce((s,x)=>s+x.monto,0);
+          const transP=vP.filter(x=>x.tipo==="transferencia").reduce((s,x)=>s+x.monto,0);
+          const comTarP=Math.round(tarP*(data.comision?.[suc]||0)/100);
+          const utilP=tvP+tcvP-tgP-tcgP-comTarP;
+          return(
+            <div>
+              <div style={{background:"#fbbf2410",border:"1px solid #fbbf2420",borderRadius:12,padding:"10px 14px",marginBottom:14,fontSize:11,color:"#fbbf24"}}>
+                💡 Usa esta pestaña para cuadrar el dinero físico de caja con los registros del sistema.
+              </div>
+              {/* Selector período */}
+              <div style={{display:"flex",gap:6,marginBottom:16}}>
+                {PERS.map(([k,l])=>(
+                  <button key={k} onClick={()=>setPerCaja(k)} style={{flex:1,padding:"8px 4px",borderRadius:9,border:`1px solid ${perCaja===k?info.color:"#ffffff12"}`,background:perCaja===k?info.color+"20":"transparent",color:perCaja===k?info.color:"#ffffff44",fontWeight:700,fontSize:11,cursor:"pointer"}}>{l}</button>
+                ))}
+              </div>
+              {/* Resumen */}
+              <div style={{background:"#0d1525",borderRadius:14,padding:16,marginBottom:14,border:`1px solid ${info.color}18`}}>
+                <div style={{fontSize:10,color:"#ffffff44",letterSpacing:2,marginBottom:12}}>📊 RESUMEN {PERS.find(p=>p[0]===perCaja)?.[1]?.toUpperCase()}</div>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:12}}>
+                  <div style={{background:"#4ade8010",borderRadius:10,padding:"12px",textAlign:"center"}}>
+                    <div style={{fontSize:9,color:"#4ade8066",marginBottom:4}}>💰 Total Ventas</div>
+                    <div style={{fontSize:18,fontWeight:900,color:"#4ade80"}}>{fmt(tvP)}</div>
+                  </div>
+                  <div style={{background:"#f8717110",borderRadius:10,padding:"12px",textAlign:"center"}}>
+                    <div style={{fontSize:9,color:"#f8717166",marginBottom:4}}>📉 Total Gastos</div>
+                    <div style={{fontSize:18,fontWeight:900,color:"#f87171"}}>{fmt(tgP)}</div>
+                  </div>
+                </div>
+                {/* Desglose ventas */}
+                <div style={{marginBottom:10}}>
+                  <div style={{fontSize:10,color:"#ffffff33",marginBottom:6}}>Desglose ventas:</div>
+                  {[{l:"💵 Efectivo en caja",v:efP,c:"#4ade80"},{l:"💳 Tarjeta",v:tarP,c:"#60a5fa"},{l:"🏦 Transferencia",v:transP,c:"#a78bfa"}].map(x=>(
+                    x.v>0&&<div key={x.l} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid #ffffff07"}}>
+                      <span style={{fontSize:11,color:"#ffffff55"}}>{x.l}</span>
+                      <span style={{fontSize:12,fontWeight:700,color:x.c}}>{fmt(x.v)}</span>
+                    </div>
+                  ))}
+                  {comTarP>0&&<div style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid #ffffff07"}}>
+                    <span style={{fontSize:11,color:"#f8717188"}}>↳ Comisión tarjeta</span>
+                    <span style={{fontSize:12,fontWeight:700,color:"#f87171"}}>−{fmt(comTarP)}</span>
+                  </div>}
+                  {tcvP>0&&<div style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid #ffffff07"}}>
+                    <span style={{fontSize:11,color:"#fbbf2488"}}>🚬 Cigarros</span>
+                    <span style={{fontSize:12,fontWeight:700,color:"#fbbf24"}}>{fmt(tcvP-tcgP)}</span>
+                  </div>}
+                </div>
+                {/* Resultado */}
+                <div style={{background:utilP>=0?"#4ade8012":"#f8717112",border:`1px solid ${utilP>=0?"#4ade8025":"#f8717125"}`,borderRadius:10,padding:"10px 14px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                  <div>
+                    <div style={{fontSize:12,fontWeight:700,color:utilP>=0?"#4ade80":"#f87171"}}>Utilidad operacional</div>
+                    <div style={{fontSize:10,color:"#ffffff44"}}>Dinero que debería quedar en caja</div>
+                  </div>
+                  <div style={{fontSize:20,fontWeight:900,color:utilP>=0?"#4ade80":"#f87171"}}>{fmt(utilP)}</div>
+                </div>
+              </div>
+              {/* Detalle transacciones */}
+              {vP.length>0&&<>
+                <div style={{fontSize:10,color:"#ffffff22",letterSpacing:2,margin:"14px 0 8px"}}>💰 VENTAS DEL PERÍODO</div>
+                {vP.map(v=>(
+                  <div key={v.id} style={{background:"#0d1525",borderRadius:9,padding:"9px 12px",marginBottom:5,display:"flex",justifyContent:"space-between",alignItems:"center",border:"1px solid #22c55e0a"}}>
+                    <div>
+                      <div style={{display:"flex",gap:5,marginBottom:2}}>
+                        <Tag label={TIPOS_PAGO.find(t=>t.id===v.tipo)?.label||v.tipo} color={v.tipo==="efectivo"?"#22c55e":v.tipo==="tarjeta"?"#3b82f6":"#8b5cf6"}/>
+                        <span style={{fontSize:10,color:"#ffffff33"}}>{v.fecha}</span>
+                      </div>
+                      {v.descripcion&&<div style={{fontSize:10,color:"#ffffff44"}}>{v.descripcion}</div>}
+                    </div>
+                    <span style={{fontSize:13,fontWeight:800,color:"#4ade80"}}>{fmt(v.monto)}</span>
+                  </div>
+                ))}
+              </>}
+              {gP2.length>0&&<>
+                <div style={{fontSize:10,color:"#ffffff22",letterSpacing:2,margin:"14px 0 8px"}}>📉 GASTOS DEL PERÍODO</div>
+                {gP2.map(g=>(
+                  <div key={g.id} style={{background:"#0d1525",borderRadius:9,padding:"9px 12px",marginBottom:5,display:"flex",justifyContent:"space-between",alignItems:"center",border:"1px solid #ef44440a"}}>
+                    <div>
+                      <div style={{display:"flex",gap:5,marginBottom:2}}>
+                        <Tag label={CAT_GASTO.find(c=>c.id===g.categoria)?.label||g.categoria} color="#f87171"/>
+                        <span style={{fontSize:10,color:"#ffffff33"}}>{g.fecha}</span>
+                      </div>
+                      {(g.proveedor||g.tienda)&&<div style={{fontSize:10,color:"#ffffff44"}}>{g.proveedor||g.tienda}</div>}
+                    </div>
+                    <span style={{fontSize:13,fontWeight:800,color:"#f87171"}}>{fmt(g.monto)}</span>
+                  </div>
+                ))}
+              </>}
+              {vP.length===0&&gP2.length===0&&<Empty text="Sin registros en este período"/>}
+            </div>
+          );
+        })()}
 
         {tab==="cigarros"&&(
           <div>
