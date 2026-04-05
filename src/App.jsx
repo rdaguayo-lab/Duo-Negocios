@@ -1,4 +1,4 @@
-// DUO Control de Negocios v2.2 — Caja vendedoras + Proveedores + Informes PDF
+// DUO Control de Negocios v2.3 — 1775353378
 import { useState, useMemo, useEffect } from "react";
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from "recharts";
 import { guardarFirebase, escucharFirebase } from './firebase';
