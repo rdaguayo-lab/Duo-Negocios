@@ -263,9 +263,33 @@ function MoneyInput({value,onChange,highlighted}){
   return <div style={{position:"relative"}} onClick={e=>e.stopPropagation()}><span style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",fontSize:11,color:highlighted?"#f97316":"#ffffff33",pointerEvents:"none"}}>$</span><input type="number" inputMode="numeric" placeholder="0" value={value||""} onClick={e=>e.stopPropagation()} onFocus={e=>e.stopPropagation()} onChange={e=>{e.stopPropagation();onChange(e.target.value);}} style={{...IS,width:120,paddingLeft:22,textAlign:"right",borderColor:highlighted?"#f9731640":"#ffffff12",color:highlighted?"#fb923c":"#f0ece8"}}/></div>;
 }
 function TotalRow({label,valor,color}){ return <div style={{display:"flex",justifyContent:"space-between",padding:"8px 10px",background:color+"0a",borderRadius:8,marginTop:6}}><span style={{fontSize:11,color:color+"88"}}>{label}</span><span style={{fontSize:13,fontWeight:800,color}}>{fmt(valor)}</span></div>; }
-function ProvCard({p,gastos,onDel,cigarro}){
+// Categorías de proveedor disponibles
+const CATS_PROV = ["General","Comida","Snack","Dulces","Confites","Bebidas","Lácteos","Limpieza","Cigarros","Otro"];
+
+function ProvCard({p,gastos,onDel,onEdit,cigarro}){
   const total=(gastos||[]).filter(g=>g.proveedor===p.nombre).reduce((s,g)=>s+g.monto,0);
-  return <div style={{background:"#0d1525",borderRadius:12,padding:"11px 13px",marginBottom:8,border:`1px solid ${cigarro?"#fbbf2412":"#8b5cf612"}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}><div style={{display:"flex",alignItems:"center",gap:10}}><div style={{width:32,height:32,borderRadius:9,background:cigarro?"linear-gradient(135deg,#fbbf24,#f59e0b)":"linear-gradient(135deg,#8b5cf6,#a78bfa)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,fontWeight:900}}>{p.nombre[0]?.toUpperCase()}</div><div><div style={{fontSize:12,fontWeight:700}}>{p.nombre}</div>{p.categoria&&<div style={{fontSize:10,color:cigarro?"#fbbf2455":"#a78bfa88"}}>{p.categoria}</div>}{p.contacto&&<div style={{fontSize:10,color:"#ffffff25"}}>📞 {p.contacto}</div>}<div style={{fontSize:10,color:"#f87171"}}>Pagado: {fmt(total)}</div></div></div><DelBtn onClick={onDel}/></div>;
+  const colBg=cigarro?"linear-gradient(135deg,#fbbf24,#f59e0b)":"linear-gradient(135deg,#8b5cf6,#a78bfa)";
+  const colBorder=cigarro?"#fbbf2412":"#8b5cf612";
+  return(
+    <div style={{background:"#0d1525",borderRadius:12,padding:"12px 14px",marginBottom:8,border:`1px solid ${colBorder}`}}>
+      <div style={{display:"flex",alignItems:"flex-start",gap:10}}>
+        <div style={{width:36,height:36,borderRadius:10,background:colBg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,fontWeight:900,flexShrink:0}}>{p.nombre[0]?.toUpperCase()}</div>
+        <div style={{flex:1,minWidth:0}}>
+          <div style={{fontSize:13,fontWeight:700,marginBottom:2}}>{p.nombre}</div>
+          <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:4}}>
+            {p.categoria&&<span style={{fontSize:10,background:cigarro?"#fbbf2420":"#8b5cf620",color:cigarro?"#fbbf24":"#a78bfa",padding:"2px 7px",borderRadius:5,fontWeight:700}}>{p.categoria}</span>}
+            {p.vendedor&&<span style={{fontSize:10,background:"#60a5fa20",color:"#60a5fa",padding:"2px 7px",borderRadius:5}}>👤 {p.vendedor}</span>}
+          </div>
+          {p.contacto&&<div style={{fontSize:10,color:"#ffffff44"}}>📞 {p.contacto}</div>}
+          <div style={{fontSize:11,color:"#f87171",marginTop:2}}>Total pagado: {fmt(total)}</div>
+        </div>
+        <div style={{display:"flex",gap:6,flexShrink:0}}>
+          <button onClick={onEdit} style={{background:"#ffffff10",border:"none",color:"#ffffff66",width:28,height:28,borderRadius:8,cursor:"pointer",fontSize:13}}>✏️</button>
+          <DelBtn onClick={onDel}/>
+        </div>
+      </div>
+    </div>
+  );
 }
 function BtnNotif({icon,label,sub,color,onClick}){
   return <button onClick={onClick} style={{width:"100%",background:color+"0e",border:`1px solid ${color}25`,borderRadius:12,padding:"12px 14px",cursor:"pointer",display:"flex",alignItems:"center",gap:12,textAlign:"left"}}><span style={{fontSize:22,flexShrink:0}}>{icon}</span><div><div style={{fontSize:12,fontWeight:700,color}}>{label}</div>{sub&&<div style={{fontSize:10,color:"#ffffff44",marginTop:2}}>{sub}</div>}</div><span style={{marginLeft:"auto",color:color+"88",fontSize:18}}>→</span></button>;
@@ -754,6 +778,289 @@ function PanelNotificar({sesion,data,esDueno,rc,rt,mes}){
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+// ── PANEL INFORMES ───────────────────────────────────────
+function PanelInformes({data}){
+  const [tipo,setTipo]=useState("mensual"); // mensual | semanal
+  const [mes,setMes]=useState(mesNow());
+  const [semana,setSemana]=useState(0); // 0=esta semana, 1=anterior...
+
+  // Calcular rango de semana
+  const rangoSemana=(offset=0)=>{
+    const hoy2=new Date();
+    const lunes=new Date(hoy2);
+    lunes.setDate(hoy2.getDate()-hoy2.getDay()+1-(offset*7));
+    lunes.setHours(0,0,0,0);
+    const domingo=new Date(lunes);
+    domingo.setDate(lunes.getDate()+6);
+    const fmt2=(d)=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+    return {desde:fmt2(lunes),hasta:fmt2(domingo),label:`${String(lunes.getDate()).padStart(2,"0")}/${String(lunes.getMonth()+1).padStart(2,"0")} — ${String(domingo.getDate()).padStart(2,"0")}/${String(domingo.getMonth()+1).padStart(2,"0")}/${domingo.getFullYear()}`};
+  };
+
+  const rango=rangoSemana(semana);
+
+  const calcSuc2=(suc)=>{
+    let v,g,cv,cg;
+    if(tipo==="mensual"){
+      v=filtroMes(data[suc]?.ventas||[],mes);
+      g=filtroMes(data[suc]?.gastos||[],mes);
+      cv=filtroMes(data[suc]?.cigarros?.ventas||[],mes);
+      cg=filtroMes(data[suc]?.cigarros?.gastos||[],mes);
+    } else {
+      v=(data[suc]?.ventas||[]).filter(x=>x.fecha>=rango.desde&&x.fecha<=rango.hasta);
+      g=(data[suc]?.gastos||[]).filter(x=>x.fecha>=rango.desde&&x.fecha<=rango.hasta);
+      cv=(data[suc]?.cigarros?.ventas||[]).filter(x=>x.fecha>=rango.desde&&x.fecha<=rango.hasta);
+      cg=(data[suc]?.cigarros?.gastos||[]).filter(x=>x.fecha>=rango.desde&&x.fecha<=rango.hasta);
+    }
+    const tv=v.reduce((s,x)=>s+x.monto,0);
+    const tg=g.reduce((s,x)=>s+x.monto,0);
+    const tcv=cv.reduce((s,x)=>s+x.monto,0);
+    const tcg=cg.reduce((s,x)=>s+x.monto,0);
+    const ef=v.filter(x=>x.tipo==="efectivo").reduce((s,x)=>s+x.monto,0);
+    const tar=v.filter(x=>x.tipo==="tarjeta").reduce((s,x)=>s+x.monto,0);
+    const trans=v.filter(x=>x.tipo==="transferencia").reduce((s,x)=>s+x.monto,0);
+    const comTar=Math.round(tar*(data.comision?.[suc]||0)/100);
+    const mk=tipo==="mensual"?mes:`${rango.desde.slice(0,7)}`;
+    const fijosMap=getFijosMap(data,suc,mk);
+    const varMap=getVarMap(data,suc,mk);
+    const fd=FIJOS_DEF[suc]||[]; const fe=data.fijosExtra?.[suc]||[];
+    const vd=VAR_DEF[suc]||[];   const ve=data.varExtra?.[suc]||[];
+    const totalFijos=tipo==="mensual"?[...fd,...fe].reduce((s,x)=>s+(parseFloat(fijosMap[x.id])||0),0):0;
+    const totalVar=tipo==="mensual"?[...vd,...ve].reduce((s,x)=>s+(parseFloat(varMap[x.id])||0),0):0;
+    const iva=tipo==="mensual"?calcIVA(data,suc,mk):{ivaPagar:0,ppm:0,totalPagar:0};
+    const utilBruta=tv+tcv-tg-tcg-comTar;
+    const utilReal=utilBruta-totalFijos-totalVar-iva.ivaPagar-iva.ppm;
+    const diasOper=[...new Set(v.map(x=>x.fecha))].length||1;
+    const promDia=Math.round(tv/diasOper);
+    const t1=v.filter(x=>x.turno==="Turno 1").reduce((s,x)=>s+x.monto,0);
+    const t2=v.filter(x=>x.turno==="Turno 2").reduce((s,x)=>s+x.monto,0);
+    return{tv,tg,tcv,tcg,ef,tar,trans,comTar,totalFijos,totalVar,utilBruta,utilReal,iva,diasOper,promDia,t1,t2,fijosMap,varMap,fd,fe,vd,ve};
+  };
+
+  const car=calcSuc2("carahue");
+  const tem=calcSuc2("temuco");
+  const totalUtil=car.utilReal+tem.utilReal;
+  const totalVentas=car.tv+tem.tv;
+
+  const periodoLabel=tipo==="mensual"?lblMes(mes):rango.label;
+  const titulo=tipo==="mensual"?`Informe Mensual — ${periodoLabel}`:`Informe Semanal — ${periodoLabel}`;
+
+  const imprimirPDF=()=>{
+    const w=window.open("","_blank");
+    const estilos=`
+      body{font-family:'Segoe UI',Arial,sans-serif;background:#fff;color:#1a1a2e;margin:0;padding:24px;font-size:13px;}
+      h1{font-size:22px;font-weight:900;margin-bottom:4px;color:#1a1a2e;}
+      h2{font-size:16px;font-weight:800;margin:20px 0 10px;color:#1a1a2e;border-bottom:2px solid #e5e7eb;padding-bottom:6px;}
+      h3{font-size:13px;font-weight:700;margin:14px 0 6px;color:#374151;}
+      .sub{font-size:11px;color:#6b7280;margin-bottom:16px;}
+      .kpi-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;}
+      .kpi{background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;padding:14px;text-align:center;}
+      .kpi-val{font-size:20px;font-weight:900;margin-bottom:4px;}
+      .kpi-lbl{font-size:10px;color:#6b7280;text-transform:uppercase;letter-spacing:1px;}
+      .row{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #f3f4f6;}
+      .row.bold{font-weight:700;}
+      .row.total{font-weight:900;font-size:15px;background:#f9fafb;padding:8px 6px;border-radius:6px;margin-top:6px;}
+      .pos{color:#059669;} .neg{color:#dc2626;}
+      .suc{background:#f9fafb;border:1px solid #e5e7eb;border-radius:12px;padding:16px;margin-bottom:16px;}
+      .footer{margin-top:30px;font-size:10px;color:#9ca3af;text-align:center;border-top:1px solid #e5e7eb;padding-top:12px;}
+      @media print{body{padding:12px;}}
+    `;
+    const fmtP=(n)=>new Intl.NumberFormat("es-CL",{style:"currency",currency:"CLP",maximumFractionDigits:0}).format(n||0);
+    const rowP=(l,v,bold=false,pos=null)=>{
+      const color=pos===null?(v>=0?"pos":"neg"):(pos?"pos":"neg");
+      return `<div class="row${bold?" bold":""}"><span>${l}</span><span class="${color}">${fmtP(v)}</span></div>`;
+    };
+    const secSuc=(suc,r,info)=>`
+      <div class="suc">
+        <h2>${info.emoji} ${info.nombre}</h2>
+        <h3>📥 Ingresos</h3>
+        ${rowP("💰 Ventas totales",r.tv,true,true)}
+        ${rowP("  💵 Efectivo",r.ef)}
+        ${rowP("  💳 Tarjeta bruta",r.tar)}
+        ${r.comTar>0?rowP(`  ↳ Comisión TUU (${data.comision?.[suc]||0}%)`,-r.comTar,false,false):""}
+        ${rowP("  🏦 Transferencia",r.trans)}
+        ${rowP("🚬 Ventas cigarros",r.tcv,true,true)}
+        <h3>📤 Egresos</h3>
+        ${rowP("📉 Gastos operacionales",-r.tg,true,false)}
+        ${rowP("📦 Compras cigarros",-r.tcg,true,false)}
+        ${tipo==="mensual"?`
+          ${rowP("💼 Gastos fijos",-r.totalFijos,true,false)}
+          ${[...r.fd,...r.fe].map(x=>{ const v2=parseFloat(r.fijosMap[x.id])||0; return v2>0?rowP(`  ${x.label}`,-v2):"";}).join("")}
+          ${rowP("📊 Gastos variables",-r.totalVar,true,false)}
+          ${[...r.vd,...r.ve].map(x=>{ const v2=parseFloat(r.varMap[x.id])||0; return v2>0?rowP(`  ${x.label}`,-v2):"";}).join("")}
+          ${r.iva.ivaPagar>0?rowP("🧾 IVA a pagar",-r.iva.ivaPagar,false,false):""}
+          ${r.iva.ppm>0?rowP("📊 PPM",-r.iva.ppm,false,false):""}
+        `:""}
+        <h3>📊 Resultado</h3>
+        <div class="row total"><span>= Utilidad operacional</span><span class="${r.utilBruta>=0?"pos":"neg"}">${fmtP(r.utilBruta)}</span></div>
+        ${tipo==="mensual"?`<div class="row total"><span>= UTILIDAD REAL (después de todo)</span><span class="${r.utilReal>=0?"pos":"neg"}">${fmtP(r.utilReal)}</span></div>`:""}
+        ${suc==="carahue"?`<h3>⏰ Por Turno</h3>${rowP("🌅 Turno 1",r.t1)}${rowP("🌙 Turno 2",r.t2)}`:""}
+        <h3>📈 Indicadores</h3>
+        ${rowP("Días con operaciones",r.diasOper,false,true)}
+        ${rowP("Promedio diario ventas",r.promDia,false,true)}
+      </div>`;
+
+    w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"/><title>${titulo}</title><style>${estilos}</style></head><body>
+      <h1>🏪 DUO Control de Negocios</h1>
+      <div class="sub">${titulo} · Generado el ${new Date().toLocaleDateString("es-CL",{day:"2-digit",month:"long",year:"numeric"})}</div>
+      <div class="kpi-grid">
+        <div class="kpi"><div class="kpi-val pos">${fmtP(totalVentas)}</div><div class="kpi-lbl">Ventas totales</div></div>
+        <div class="kpi"><div class="kpi-val ${totalUtil>=0?"pos":"neg"}">${fmtP(totalUtil)}</div><div class="kpi-lbl">Utilidad ${tipo==="mensual"?"real":"operacional"}</div></div>
+        <div class="kpi"><div class="kpi-val">${fmtP(car.tv+tem.tv>0?Math.round(totalUtil/(car.tv+tem.tv)*100):0)}%</div><div class="kpi-lbl">Margen</div></div>
+      </div>
+      ${secSuc("carahue",car,SUCS.carahue)}
+      ${secSuc("temuco",tem,SUCS.temuco)}
+      <div class="footer">DUO Control de Negocios · duo-negocios.vercel.app · ${new Date().toLocaleString("es-CL")}</div>
+    </body></html>`);
+    w.document.close();
+    setTimeout(()=>w.print(),500);
+  };
+
+  return(
+    <div>
+      {/* Selector tipo */}
+      <div style={{display:"flex",gap:8,marginBottom:16}}>
+        {[["mensual","📅 Mensual"],["semanal","📆 Semanal"]].map(([k,l])=>(
+          <button key={k} onClick={()=>setTipo(k)} style={{flex:1,padding:"10px",borderRadius:10,border:`1px solid ${tipo===k?"#f97316":"#ffffff12"}`,background:tipo===k?"#f9731620":"transparent",color:tipo===k?"#f97316":"#ffffff44",fontWeight:700,fontSize:13,cursor:"pointer"}}>{l}</button>
+        ))}
+      </div>
+
+      {/* Selector período */}
+      {tipo==="mensual"?(
+        <div style={{marginBottom:16}}><Lbl>MES</Lbl><input type="month" value={mes} onChange={e=>setMes(e.target.value)} style={{...IS,maxWidth:220}}/></div>
+      ):(
+        <div style={{marginBottom:16}}>
+          <Lbl>SEMANA</Lbl>
+          <div style={{display:"flex",gap:8,alignItems:"center"}}>
+            <button onClick={()=>setSemana(s=>s+1)} style={{background:"#ffffff10",border:"none",color:"#ffffff66",padding:"8px 14px",borderRadius:8,cursor:"pointer",fontSize:16}}>←</button>
+            <div style={{flex:1,textAlign:"center",background:"#ffffff08",borderRadius:10,padding:"9px 14px",fontSize:12,fontWeight:700,color:"#f97316"}}>{rango.label}</div>
+            <button onClick={()=>setSemana(s=>Math.max(0,s-1))} style={{background:"#ffffff10",border:"none",color:semana===0?"#ffffff22":"#ffffff66",padding:"8px 14px",borderRadius:8,cursor:"pointer",fontSize:16}} disabled={semana===0}>→</button>
+          </div>
+        </div>
+      )}
+
+      {/* KPIs consolidados */}
+      <div style={{background:"linear-gradient(135deg,#0d1525,#1a2540)",borderRadius:16,padding:18,marginBottom:16,border:"1px solid #f9731620"}}>
+        <div style={{fontSize:11,fontWeight:700,color:"#f97316",letterSpacing:2,marginBottom:14}}>🏪 CONSOLIDADO DUO</div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
+          <div style={{textAlign:"center",background:"#4ade8010",borderRadius:12,padding:"14px 8px"}}>
+            <div style={{fontSize:10,color:"#4ade8066",marginBottom:4}}>Ventas totales</div>
+            <div style={{fontSize:20,fontWeight:900,color:"#4ade80"}}>{fmt(totalVentas)}</div>
+          </div>
+          <div style={{textAlign:"center",background:totalUtil>=0?"#4ade8010":"#f8717110",borderRadius:12,padding:"14px 8px"}}>
+            <div style={{fontSize:10,color:totalUtil>=0?"#4ade8066":"#f8717166",marginBottom:4}}>Utilidad {tipo==="mensual"?"real":"operacional"}</div>
+            <div style={{fontSize:20,fontWeight:900,color:totalUtil>=0?"#4ade80":"#f87171"}}>{fmt(totalUtil)}</div>
+          </div>
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
+          {[{l:"Carahue ventas",v:car.tv,c:"#22c55e"},{l:"Temuco ventas",v:tem.tv,c:"#3b82f6"},{l:"Margen",v:totalVentas>0?Math.round(totalUtil/totalVentas*100):0,c:"#f97316",pct:true}].map(x=>(
+            <div key={x.l} style={{background:"#ffffff06",borderRadius:10,padding:"10px",textAlign:"center"}}>
+              <div style={{fontSize:9,color:"#ffffff44",marginBottom:3}}>{x.l}</div>
+              <div style={{fontSize:13,fontWeight:800,color:x.c}}>{x.pct?`${x.v}%`:fmt(x.v)}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Detalle por sucursal */}
+      {[{suc:"carahue",r:car},{suc:"temuco",r:tem}].map(({suc,r})=>{
+        const info=SUCS[suc];
+        return(
+          <div key={suc} style={{background:"#0d1525",borderRadius:16,padding:18,marginBottom:14,border:`1px solid ${info.color}20`}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14,paddingBottom:10,borderBottom:`1px solid ${info.color}15`}}>
+              <div style={{display:"flex",alignItems:"center",gap:8}}>
+                <span style={{fontSize:20}}>{info.emoji}</span>
+                <div style={{fontSize:14,fontWeight:800}}>{info.nombre}</div>
+              </div>
+              <div style={{textAlign:"right"}}>
+                <div style={{fontSize:9,color:"#ffffff33"}}>Utilidad {tipo==="mensual"?"real":"oper."}</div>
+                <div style={{fontSize:18,fontWeight:900,color:r.utilReal>=0?"#4ade80":"#f87171"}}>{fmt(r.utilReal)}</div>
+              </div>
+            </div>
+
+            {/* Ingresos */}
+            <div style={{marginBottom:12}}>
+              <div style={{fontSize:10,color:"#4ade8066",letterSpacing:2,marginBottom:6}}>📥 INGRESOS</div>
+              {[{l:"💰 Ventas",v:r.tv,c:"#4ade80"},{l:"  💵 Efectivo",v:r.ef,c:"#86efac"},{l:"  💳 Tarjeta",v:r.tar,c:"#60a5fa"},{l:"  🏦 Transferencia",v:r.trans,c:"#a78bfa"},{l:"🚬 Cigarros",v:r.tcv,c:"#fbbf24"}].map(x=>(
+                x.v>0&&<div key={x.l} style={{display:"flex",justifyContent:"space-between",padding:"4px 0",borderBottom:"1px solid #ffffff05"}}>
+                  <span style={{fontSize:11,color:"#ffffff55"}}>{x.l}</span>
+                  <span style={{fontSize:12,fontWeight:700,color:x.c}}>{fmt(x.v)}</span>
+                </div>
+              ))}
+              {r.comTar>0&&<div style={{display:"flex",justifyContent:"space-between",padding:"4px 0"}}>
+                <span style={{fontSize:11,color:"#f8717188"}}>  ↳ Comisión TUU</span>
+                <span style={{fontSize:12,fontWeight:700,color:"#f87171"}}>−{fmt(r.comTar)}</span>
+              </div>}
+            </div>
+
+            {/* Egresos */}
+            <div style={{marginBottom:12}}>
+              <div style={{fontSize:10,color:"#f8717166",letterSpacing:2,marginBottom:6}}>📤 EGRESOS</div>
+              {[{l:"📉 Gastos operacionales",v:r.tg,c:"#f87171"},{l:"📦 Compras cigarros",v:r.tcg,c:"#fca5a5"}].map(x=>(
+                x.v>0&&<div key={x.l} style={{display:"flex",justifyContent:"space-between",padding:"4px 0",borderBottom:"1px solid #ffffff05"}}>
+                  <span style={{fontSize:11,color:"#ffffff55"}}>{x.l}</span>
+                  <span style={{fontSize:12,fontWeight:700,color:x.c}}>−{fmt(x.v)}</span>
+                </div>
+              ))}
+              {tipo==="mensual"&&<>
+                {r.totalFijos>0&&<div style={{display:"flex",justifyContent:"space-between",padding:"4px 0",borderBottom:"1px solid #ffffff05"}}>
+                  <span style={{fontSize:11,color:"#ffffff55"}}>💼 Gastos fijos</span>
+                  <span style={{fontSize:12,fontWeight:700,color:"#fb923c"}}>−{fmt(r.totalFijos)}</span>
+                </div>}
+                {r.totalVar>0&&<div style={{display:"flex",justifyContent:"space-between",padding:"4px 0",borderBottom:"1px solid #ffffff05"}}>
+                  <span style={{fontSize:11,color:"#ffffff55"}}>📊 Gastos variables</span>
+                  <span style={{fontSize:12,fontWeight:700,color:"#c084fc"}}>−{fmt(r.totalVar)}</span>
+                </div>}
+                {r.iva.totalPagar>0&&<div style={{display:"flex",justifyContent:"space-between",padding:"4px 0",borderBottom:"1px solid #ffffff05"}}>
+                  <span style={{fontSize:11,color:"#ffffff55"}}>🧾 IVA + PPM</span>
+                  <span style={{fontSize:12,fontWeight:700,color:"#f87171"}}>−{fmt(r.iva.totalPagar)}</span>
+                </div>}
+              </>}
+            </div>
+
+            {/* Resultado */}
+            <div style={{background:r.utilBruta>=0?"#4ade8010":"#f8717110",border:`1px solid ${r.utilBruta>=0?"#4ade8025":"#f8717125"}`,borderRadius:10,padding:"10px 14px",marginBottom:8,display:"flex",justifyContent:"space-between"}}>
+              <span style={{fontSize:12,fontWeight:700}}>= Utilidad operacional</span>
+              <span style={{fontSize:15,fontWeight:900,color:r.utilBruta>=0?"#4ade80":"#f87171"}}>{fmt(r.utilBruta)}</span>
+            </div>
+            {tipo==="mensual"&&<div style={{background:r.utilReal>=0?"#22c55e14":"#ef444414",border:`1px solid ${r.utilReal>=0?"#22c55e30":"#ef444430"}`,borderRadius:10,padding:"10px 14px",marginBottom:8,display:"flex",justifyContent:"space-between"}}>
+              <span style={{fontSize:12,fontWeight:800}}>= UTILIDAD REAL</span>
+              <span style={{fontSize:16,fontWeight:900,color:r.utilReal>=0?"#4ade80":"#f87171"}}>{fmt(r.utilReal)}</span>
+            </div>}
+
+            {/* Indicadores */}
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginTop:10}}>
+              <div style={{background:"#ffffff05",borderRadius:8,padding:"8px 10px",textAlign:"center"}}>
+                <div style={{fontSize:9,color:"#ffffff44"}}>Días activos</div>
+                <div style={{fontSize:16,fontWeight:800,color:"#60a5fa"}}>{r.diasOper}</div>
+              </div>
+              <div style={{background:"#ffffff05",borderRadius:8,padding:"8px 10px",textAlign:"center"}}>
+                <div style={{fontSize:9,color:"#ffffff44"}}>Promedio/día</div>
+                <div style={{fontSize:16,fontWeight:800,color:"#a78bfa"}}>{fmt(r.promDia)}</div>
+              </div>
+            </div>
+            {suc==="carahue"&&(r.t1>0||r.t2>0)&&<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginTop:8}}>
+              <div style={{background:"#22c55e08",borderRadius:8,padding:"8px 10px",textAlign:"center"}}>
+                <div style={{fontSize:9,color:"#4ade8066"}}>🌅 Turno 1</div>
+                <div style={{fontSize:14,fontWeight:800,color:"#4ade80"}}>{fmt(r.t1)}</div>
+              </div>
+              <div style={{background:"#4ade8008",borderRadius:8,padding:"8px 10px",textAlign:"center"}}>
+                <div style={{fontSize:9,color:"#86efac66"}}>🌙 Turno 2</div>
+                <div style={{fontSize:14,fontWeight:800,color:"#86efac"}}>{fmt(r.t2)}</div>
+              </div>
+            </div>}
+          </div>
+        );
+      })}
+
+      {/* Botón PDF */}
+      <button onClick={imprimirPDF} style={{width:"100%",padding:"14px",borderRadius:12,border:"none",background:"linear-gradient(135deg,#dc2626,#ef4444)",color:"#fff",fontWeight:900,fontSize:15,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8,marginTop:8}}>
+        📄 Descargar / Imprimir Informe PDF
+      </button>
+      <div style={{fontSize:10,color:"#ffffff33",textAlign:"center",marginTop:8}}>Se abrirá una ventana para guardar o imprimir el informe</div>
     </div>
   );
 }
@@ -1267,8 +1574,8 @@ function VistaDueno({sesion,data,guardar,onSalir}){
   const chatNuevos=(data.chatDuenos||[]).filter(m=>m.de!==sesion.id).length;
 
   const PERIODOS=[{k:"dia",l:"Hoy"},{k:"semana",l:"Semana"},{k:"mes",l:"Mes"},{k:"año",l:"Año"},{k:"custom",l:"Rango"}];
-  const TABS=[["resumen","📊 Resumen"],["reporte","📋 Reporte"],["iva","🧾 IVA/PPM"],["tuu","💳 TUU"],["graficos","📈 Gráficos"],["gastos","💼 Gastos"],["trabajadores","👥 RRHH"],["mensajes","💬 Equipo"],["chat","🔒 Chat"],["notas","📝 Notas"],["notificar","📬 Notificar"],["carahue","🌿 Carahue"],["temuco","🏙️ Temuco"]];
-  const SIN_FILTRO=["reporte","iva","tuu","gastos","trabajadores","mensajes","chat","notas","notificar"];
+  const TABS=[["resumen","📊 Resumen"],["reporte","📋 Reporte"],["iva","🧾 IVA/PPM"],["tuu","💳 TUU"],["informes","📄 Informes"],["graficos","📈 Gráficos"],["gastos","💼 Gastos"],["trabajadores","👥 RRHH"],["mensajes","💬 Equipo"],["chat","🔒 Chat"],["notas","📝 Notas"],["notificar","📬 Notificar"],["carahue","🌿 Carahue"],["temuco","🏙️ Temuco"]];
+  const SIN_FILTRO=["reporte","iva","tuu","informes","gastos","trabajadores","mensajes","chat","notas","notificar"];
 
   const setFB=(suc,id,v)=>guardar({...data,fijosBase:{...data.fijosBase,[suc]:{...(data.fijosBase?.[suc]||{}),[id]:parseFloat(v)||0}}});
   const setFO=(mk,suc,id,v)=>{const o=JSON.parse(JSON.stringify(data.fijosOv||{}));if(!o[mk])o[mk]={};if(!o[mk][suc])o[mk][suc]={};o[mk][suc][id]=parseFloat(v)||0;guardar({...data,fijosOv:o});};
@@ -1466,6 +1773,7 @@ function VistaDueno({sesion,data,guardar,onSalir}){
 
         {tab==="iva"&&<PanelIVA data={data} mes={mes} setMes={setMes}/>}
         {tab==="tuu"&&<PanelTUU data={data} mes={mes} setMes={setMes} guardar={guardar}/>}
+        {tab==="informes"&&<PanelInformes data={data}/>}
         {tab==="graficos"&&(
           <div>
             <div style={{background:"#0d1525",borderRadius:16,padding:18,marginBottom:14,border:"1px solid #ffffff0c"}}>
@@ -1508,19 +1816,33 @@ function VistaVendedora({sesion,data,guardar,onSalir}){
   const eV={fecha:hoy(),tipo:"efectivo",monto:"",descripcion:""};
   const eG={fecha:hoy(),categoria:"proveedor",proveedor:"",tienda:"",factura:"",monto:"",descripcion:""};
   const eCV={fecha:hoy(),monto:"",descripcion:""}; const eCG={fecha:hoy(),proveedor:"",factura:"",monto:"",descripcion:""};
-  const eP={nombre:"",contacto:"",categoria:"",esCigarro:false}; const eB={fecha:hoy(),monto:""};
+  const eP={nombre:"",contacto:"",vendedor:"",categoria:"General",catPersonalizada:"",esCigarro:false}; const eB={fecha:hoy(),monto:""};
   const eVF={desde:"",hasta:"",motivo:""};
 
   const [vF,setVF]=useState(eV); const [gF,setGF]=useState(eG);
   const [cvF,setCvF]=useState(eCV); const [cgF,setCgF]=useState(eCG);
   const [pF,setPF]=useState(eP); const [bF,setBF]=useState(eB);
   const [vacF,setVacF]=useState(eVF);
+  const [editProvId,setEditProvId]=useState(null);
+
+  const gP=async()=>{
+    if(!pF.nombre)return;
+    const cat=pF.categoria==="__nueva__"?pF.catPersonalizada:pF.categoria;
+    const prov={...pF,categoria:cat};
+    if(editProvId){
+      await upd({...sd,proveedores:pvs.map(p=>p.id===editProvId?{...p,...prov}:p)});
+    } else {
+      await upd({...sd,proveedores:[{id:uid(),...prov},...pvs]});
+    }
+    setPF(eP);setEditProvId(null);setModal(null);
+  };
+  const editarProv=(p)=>{setPF({nombre:p.nombre,contacto:p.contacto||"",vendedor:p.vendedor||"",categoria:p.categoria||"General",catPersonalizada:"",esCigarro:p.esCigarro||false});setEditProvId(p.id);setModal("prov");};
 
   const gV=async()=>{if(!vF.monto)return;await upd({...sd,ventas:[{id:uid(),...vF,monto:+vF.monto,turno:sesion.turno},...vs]});setVF(eV);setModal(null);};
   const gG=async()=>{if(!gF.monto)return;await upd({...sd,gastos:[{id:uid(),...gF,monto:+gF.monto},...gs]});setGF(eG);setModal(null);};
   const gCV=async()=>{if(!cvF.monto)return;await upd({...sd,cigarros:{...sd.cigarros,ventas:[{id:uid(),...cvF,monto:+cvF.monto},...cigV]}});setCvF(eCV);setModal(null);};
   const gCG=async()=>{if(!cgF.monto)return;await upd({...sd,cigarros:{...sd.cigarros,gastos:[{id:uid(),...cgF,monto:+cgF.monto},...cigG]}});setCgF(eCG);setModal(null);};
-  const gP=async()=>{if(!pF.nombre)return;await upd({...sd,proveedores:[{id:uid(),...pF},...pvs]});setPF(eP);setModal(null);};
+  const gB=async()=>{if(!bF.monto)return;await upd({...sd,boletas:[{id:uid(),...bF,monto:+bF.monto,turno:sesion.turno},...bols]});setBF(eB);setModal(null);};
   const gB=async()=>{if(!bF.monto)return;await upd({...sd,boletas:[{id:uid(),...bF,monto:+bF.monto,turno:sesion.turno},...bols]});setBF(eB);setModal(null);};
 
   const dV=(id)=>upd({...sd,ventas:vs.filter(x=>x.id!==id)});
@@ -1644,11 +1966,11 @@ function VistaVendedora({sesion,data,guardar,onSalir}){
           <div>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
               <div style={{fontSize:13,fontWeight:700}}>{pvs.length} proveedores</div>
-              <button onClick={()=>setModal("prov")} style={{border:"none",color:"#fff",padding:"9px 18px",borderRadius:10,fontWeight:900,cursor:"pointer",fontSize:13,background:"linear-gradient(135deg,#8b5cf6,#a78bfa99)"}}>+ Proveedor</button>
+              <button onClick={()=>{setPF({nombre:"",contacto:"",vendedor:"",categoria:"General",catPersonalizada:"",esCigarro:false});setEditProvId(null);setModal("prov");}} style={{border:"none",color:"#fff",padding:"9px 18px",borderRadius:10,fontWeight:900,cursor:"pointer",fontSize:13,background:"linear-gradient(135deg,#8b5cf6,#a78bfa99)"}}>+ Proveedor</button>
             </div>
-            {pNrm.map(p=><ProvCard key={p.id} p={p} gastos={gs} onDel={()=>dP(p.id)}/>)}
+            {pNrm.map(p=><ProvCard key={p.id} p={p} gastos={gs} onDel={()=>dP(p.id)} onEdit={()=>editarProv(p)}/>)}
             {pCig.length>0&&<div style={{fontSize:10,color:"#fbbf2444",letterSpacing:2,margin:"12px 0 8px"}}>🚬 CIGARROS</div>}
-            {pCig.map(p=><ProvCard key={p.id} p={p} gastos={cigG} onDel={()=>dP(p.id)} cigarro/>)}
+            {pCig.map(p=><ProvCard key={p.id} p={p} gastos={cigG} onDel={()=>dP(p.id)} onEdit={()=>editarProv(p)} cigarro/>)}
           </div>
         )}
       </div>
@@ -1685,7 +2007,41 @@ function VistaVendedora({sesion,data,guardar,onSalir}){
 
             {modal==="cigG"&&<><div style={{fontSize:16,fontWeight:900,marginBottom:18}}>📦 Compra Cigarros</div><Inp label="FECHA" type="date" value={cgF.fecha} onChange={v=>setCgF(f=>({...f,fecha:v}))}/><div style={{marginBottom:14}}><Lbl>PROVEEDOR CIGARROS</Lbl><select value={cgF.proveedor} onChange={e=>setCgF(f=>({...f,proveedor:e.target.value}))} style={IS}><option value="">-- Seleccionar --</option>{pCig.map(p=><option key={p.id} value={p.nombre}>{p.nombre}</option>)}</select></div><Inp label="N° FACTURA" value={cgF.factura} onChange={v=>setCgF(f=>({...f,factura:v}))}/><Inp label="MONTO ($)" type="number" placeholder="0" value={cgF.monto} onChange={v=>setCgF(f=>({...f,monto:v}))}/><Btn onClick={gCG} color="#f87171" loading={gnd}>Guardar</Btn></>}
 
-            {modal==="prov"&&<><div style={{fontSize:16,fontWeight:900,marginBottom:18}}>🏭 Nuevo Proveedor</div><Inp label="NOMBRE *" value={pF.nombre} onChange={v=>setPF(f=>({...f,nombre:v}))}/><Inp label="TELÉFONO" value={pF.contacto} onChange={v=>setPF(f=>({...f,contacto:v}))}/><Inp label="CATEGORÍA" value={pF.categoria} onChange={v=>setPF(f=>({...f,categoria:v}))}/><div style={{marginBottom:14}}><Lbl>TIPO</Lbl><div style={{display:"flex",gap:8}}>{[{v:false,l:"General"},{v:true,l:"🚬 Cigarros"}].map(o=>(<button key={String(o.v)} onClick={()=>setPF(f=>({...f,esCigarro:o.v}))} style={{flex:1,padding:10,borderRadius:10,border:`1px solid ${pF.esCigarro===o.v?"#8b5cf6":"#ffffff12"}`,background:pF.esCigarro===o.v?"#8b5cf620":"transparent",color:pF.esCigarro===o.v?"#a78bfa":"#ffffff44",fontWeight:700,fontSize:13,cursor:"pointer"}}>{o.l}</button>))}</div></div><Btn onClick={gP} color="#8b5cf6" loading={gnd}>Guardar Proveedor</Btn></>}
+            {modal==="prov"&&<>
+              <div style={{fontSize:16,fontWeight:900,marginBottom:4}}>{editProvId?"✏️ Editar Proveedor":"🏭 Nuevo Proveedor"}</div>
+              <div style={{fontSize:11,color:"#ffffff33",marginBottom:18}}>{editProvId?"Modifica los datos del proveedor":"Agrega un nuevo proveedor"}</div>
+              <Inp label="NOMBRE *" value={pF.nombre} onChange={v=>setPF(f=>({...f,nombre:v}))}/>
+              <Inp label="VENDEDOR / REPRESENTANTE" placeholder="Ej: Juan Pérez" value={pF.vendedor} onChange={v=>setPF(f=>({...f,vendedor:v}))}/>
+              <Inp label="TELÉFONO" placeholder="Ej: +56 9 1234 5678" value={pF.contacto} onChange={v=>setPF(f=>({...f,contacto:v}))}/>
+              <div style={{marginBottom:14}}>
+                <Lbl>CATEGORÍA</Lbl>
+                <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:8}}>
+                  {CATS_PROV.map(c=>(
+                    <button key={c} onClick={()=>setPF(f=>({...f,categoria:c,catPersonalizada:""}))}
+                      style={{padding:"6px 12px",borderRadius:8,border:`1px solid ${pF.categoria===c&&pF.categoria!=="__nueva__"?"#8b5cf6":"#ffffff12"}`,background:pF.categoria===c&&pF.categoria!=="__nueva__"?"#8b5cf620":"transparent",color:pF.categoria===c&&pF.categoria!=="__nueva__"?"#a78bfa":"#ffffff55",fontSize:11,fontWeight:700,cursor:"pointer"}}>
+                      {c}
+                    </button>
+                  ))}
+                  <button onClick={()=>setPF(f=>({...f,categoria:"__nueva__"}))}
+                    style={{padding:"6px 12px",borderRadius:8,border:`1px solid ${pF.categoria==="__nueva__"?"#4ade80":"#ffffff12"}`,background:pF.categoria==="__nueva__"?"#4ade8020":"transparent",color:pF.categoria==="__nueva__"?"#4ade80":"#ffffff44",fontSize:11,fontWeight:700,cursor:"pointer"}}>
+                    + Nueva
+                  </button>
+                </div>
+                {pF.categoria==="__nueva__"&&<input placeholder="Nombre de la nueva categoría..." value={pF.catPersonalizada} onChange={e=>setPF(f=>({...f,catPersonalizada:e.target.value}))} style={{...IS,fontSize:13}}/>}
+              </div>
+              <div style={{marginBottom:14}}>
+                <Lbl>TIPO</Lbl>
+                <div style={{display:"flex",gap:8}}>
+                  {[{v:false,l:"📦 General"},{v:true,l:"🚬 Cigarros"}].map(o=>(
+                    <button key={String(o.v)} onClick={()=>setPF(f=>({...f,esCigarro:o.v}))}
+                      style={{flex:1,padding:10,borderRadius:10,border:`1px solid ${pF.esCigarro===o.v?"#8b5cf6":"#ffffff12"}`,background:pF.esCigarro===o.v?"#8b5cf620":"transparent",color:pF.esCigarro===o.v?"#a78bfa":"#ffffff44",fontWeight:700,fontSize:13,cursor:"pointer"}}>
+                      {o.l}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <Btn onClick={gP} color="#8b5cf6" loading={gnd}>{editProvId?"Guardar Cambios":"Guardar Proveedor"}</Btn>
+            </>}
 
             {modal==="vacaciones"&&<>
               <div style={{fontSize:16,fontWeight:900,marginBottom:14}}>🏖️ Solicitar Vacaciones</div>
