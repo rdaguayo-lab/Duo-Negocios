@@ -1,4 +1,4 @@
-// DUO Control de Negocios v2.6 — vacaciones editar/cancelar, fechas destacadas
+// DUO Control de Negocios v2.7 — fix semana lunes-domingo
 import { useState, useMemo, useEffect } from "react";
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from "recharts";
 import { guardarFirebase, escucharFirebase } from './firebase';
@@ -136,7 +136,15 @@ function filtroPer(items,p,c1,c2) {
   return (items||[]).filter(x=>{
     const d=new Date(x.fecha+"T00:00:00");
     if(p==="dia")    return x.fecha===hoy();
-    if(p==="semana") { const s=new Date(n); s.setDate(n.getDate()-n.getDay()); s.setHours(0,0,0,0); return d>=s; }
+    if(p==="semana") {
+      // Semana lunes a domingo (Chile)
+      const s=new Date(n);
+      const dow=n.getDay(); // 0=dom, 1=lun...6=sab
+      const diasDesdelunes=dow===0?6:dow-1; // si domingo, retroceder 6 días
+      s.setDate(n.getDate()-diasDesdelunes);
+      s.setHours(0,0,0,0);
+      return d>=s;
+    }
     if(p==="mes")    return d.getMonth()===n.getMonth()&&d.getFullYear()===n.getFullYear();
     if(p==="año")    return d.getFullYear()===n.getFullYear();
     if(p==="custom"&&c1&&c2) return x.fecha>=c1&&x.fecha<=c2;
