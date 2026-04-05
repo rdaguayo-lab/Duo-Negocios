@@ -1,4 +1,4 @@
-// DUO Control de Negocios v2.3 — 1775353378
+// DUO Control de Negocios v2.4 — pestaña Ventas, rango fechas, proveedor mejorado
 import { useState, useMemo, useEffect } from "react";
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from "recharts";
 import { guardarFirebase, escucharFirebase } from './firebase';
