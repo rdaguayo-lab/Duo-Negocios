@@ -67,7 +67,7 @@ const PROV_DEF = {
 // ── HELPERS ───────────────────────────────────────────────
 const fmt    = (n) => new Intl.NumberFormat("es-CL",{style:"currency",currency:"CLP",maximumFractionDigits:0}).format(n||0);
 const fmtK   = (n) => { const a=Math.abs(n||0); if(a>=1e6) return (n/1e6).toFixed(1)+"M"; if(a>=1000) return Math.round(n/1000)+"K"; return String(n||0); };
-const hoy    = () => new Date().toISOString().split("T")[0];
+const hoy    = () => { const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; };
 const uid    = () => Date.now().toString(36)+Math.random().toString(36).slice(2,6);
 const mesNow = () => { const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`; };
 const lblMes = (k) => { if(!k)return""; const[y,m]=k.split("-"); return new Date(+y,+m-1,1).toLocaleString("es-CL",{month:"long",year:"numeric"}); };
