@@ -1876,7 +1876,7 @@ function VistaVendedora({sesion,data,guardar,onSalir}){
   const catA=CAT_GASTO.find(c=>c.id===gF.categoria);
   const msgNuevos=(data.mensajes||[]).filter(m=>m.de==="dueno"&&(m.para==="todos"||m.para===suc)&&!m.leido).length;
 
-  const TABS=[["registrar","📝 Registrar"],["historial","🕐 Hoy"],["caja","💰 Mi Caja"],["cigarros","🚬 Cigarros"],["boletas","🧾 Boletas"],["vacaciones","🏖️ Vacaciones"],["mensajes","💬 Mensajes"],["notificar","📬 Notificar"],["proveedores","🏭 Proveedores"]];
+  const TABS=[["registrar","📝 Registrar"],["historial","🕐 Hoy"],["caja","💰 Mi Caja"],["ventas","📊 Ventas"],["cigarros","🚬 Cigarros"],["boletas","🧾 Boletas"],["vacaciones","🏖️ Vacaciones"],["mensajes","💬 Mensajes"],["notificar","📬 Notificar"],["proveedores","🏭 Proveedores"]];
 
   return(
     <div style={{minHeight:"100vh",background:"#07090f",fontFamily:"'DM Sans','Segoe UI',sans-serif",color:"#f0ece8"}}>
@@ -1923,11 +1923,13 @@ function VistaVendedora({sesion,data,guardar,onSalir}){
 
         {tab==="caja"&&(()=>{
           const [perCaja,setPerCaja]=useState("dia");
-          const PERS=[["dia","Hoy"],["semana","Semana"],["mes","Mes"],["año","Año"]];
-          const vP=filtroPer(vs,perCaja);
-          const gP2=filtroPer(gs,perCaja);
-          const cvP=filtroPer(sd.cigarros?.ventas||[],perCaja);
-          const cgP=filtroPer(sd.cigarros?.gastos||[],perCaja);
+          const [cajaDe,setCajaDe]=useState(hoy());
+          const [cajaHa,setCajaHa]=useState(hoy());
+          const PERS=[["dia","Hoy"],["semana","Semana"],["mes","Mes"],["año","Año"],["custom","Rango"]];
+          const vP=filtroPer(vs,perCaja,cajaDe,cajaHa);
+          const gP2=filtroPer(gs,perCaja,cajaDe,cajaHa);
+          const cvP=filtroPer(sd.cigarros?.ventas||[],perCaja,cajaDe,cajaHa);
+          const cgP=filtroPer(sd.cigarros?.gastos||[],perCaja,cajaDe,cajaHa);
           const tvP=vP.reduce((s,x)=>s+x.monto,0);
           const tgP=gP2.reduce((s,x)=>s+x.monto,0);
           const tcvP=cvP.reduce((s,x)=>s+x.monto,0);
@@ -1943,11 +1945,17 @@ function VistaVendedora({sesion,data,guardar,onSalir}){
                 💡 Usa esta pestaña para cuadrar el dinero físico de caja con los registros del sistema.
               </div>
               {/* Selector período */}
-              <div style={{display:"flex",gap:6,marginBottom:16}}>
+              <div style={{display:"flex",gap:6,marginBottom:perCaja==="custom"?8:16,flexWrap:"wrap"}}>
                 {PERS.map(([k,l])=>(
-                  <button key={k} onClick={()=>setPerCaja(k)} style={{flex:1,padding:"8px 4px",borderRadius:9,border:`1px solid ${perCaja===k?info.color:"#ffffff12"}`,background:perCaja===k?info.color+"20":"transparent",color:perCaja===k?info.color:"#ffffff44",fontWeight:700,fontSize:11,cursor:"pointer"}}>{l}</button>
+                  <button key={k} onClick={()=>setPerCaja(k)} style={{flex:1,minWidth:50,padding:"8px 4px",borderRadius:9,border:`1px solid ${perCaja===k?info.color:"#ffffff12"}`,background:perCaja===k?info.color+"20":"transparent",color:perCaja===k?info.color:"#ffffff44",fontWeight:700,fontSize:11,cursor:"pointer"}}>{l}</button>
                 ))}
               </div>
+              {perCaja==="custom"&&(
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:16}}>
+                  <div><Lbl>DESDE</Lbl><input type="date" value={cajaDe} onChange={e=>setCajaDe(e.target.value)} style={{...IS,fontSize:12}}/></div>
+                  <div><Lbl>HASTA</Lbl><input type="date" value={cajaHa} onChange={e=>setCajaHa(e.target.value)} style={{...IS,fontSize:12}}/></div>
+                </div>
+              )}
               {/* Resumen */}
               <div style={{background:"#0d1525",borderRadius:14,padding:16,marginBottom:14,border:`1px solid ${info.color}18`}}>
                 <div style={{fontSize:10,color:"#ffffff44",letterSpacing:2,marginBottom:12}}>📊 RESUMEN {PERS.find(p=>p[0]===perCaja)?.[1]?.toUpperCase()}</div>
@@ -2020,6 +2028,107 @@ function VistaVendedora({sesion,data,guardar,onSalir}){
                 ))}
               </>}
               {vP.length===0&&gP2.length===0&&<Empty text="Sin registros en este período"/>}
+            </div>
+          );
+        })()}
+
+        {tab==="ventas"&&(()=>{
+          const [perV,setPerV]=useState("dia");
+          const [vDe,setVDe]=useState(hoy());
+          const [vHa,setVHa]=useState(hoy());
+          const PERSV=[["dia","Hoy"],["semana","Semana"],["mes","Mes"],["año","Año"],["custom","Rango"]];
+          const vFil=filtroPer(vs,perV,vDe,vHa);
+          const cigVFil=filtroPer(sd.cigarros?.ventas||[],perV,vDe,vHa);
+          const gFil=filtroPer(gs,perV,vDe,vHa);
+          const cigGFil=filtroPer(sd.cigarros?.gastos||[],perV,vDe,vHa);
+          const tvF=vFil.reduce((s,x)=>s+x.monto,0);
+          const tgF=gFil.reduce((s,x)=>s+x.monto,0);
+          const tcvF=cigVFil.reduce((s,x)=>s+x.monto,0);
+          const tcgF=cigGFil.reduce((s,x)=>s+x.monto,0);
+          const efF=vFil.filter(x=>x.tipo==="efectivo").reduce((s,x)=>s+x.monto,0);
+          const tarF=vFil.filter(x=>x.tipo==="tarjeta").reduce((s,x)=>s+x.monto,0);
+          const transF=vFil.filter(x=>x.tipo==="transferencia").reduce((s,x)=>s+x.monto,0);
+          const comF=Math.round(tarF*(data.comision?.[suc]||0)/100);
+          const utilF=tvF+tcvF-tgF-tcgF-comF;
+          return(
+            <div>
+              <div style={{background:"#60a5fa10",border:"1px solid #60a5fa20",borderRadius:12,padding:"10px 14px",marginBottom:14,fontSize:11,color:"#93c5fd",lineHeight:1.6}}>
+                📊 <b>Resumen de ventas</b> — úsalo para cuadrar el dinero en caja física con lo que indica la app. Elige el período o un rango de fechas personalizado.
+              </div>
+              {/* Selector período */}
+              <div style={{display:"flex",gap:6,marginBottom:perV==="custom"?8:14,flexWrap:"wrap"}}>
+                {PERSV.map(([k,l])=>(
+                  <button key={k} onClick={()=>setPerV(k)} style={{flex:1,minWidth:50,padding:"8px 4px",borderRadius:9,border:`1px solid ${perV===k?info.color:"#ffffff12"}`,background:perV===k?info.color+"20":"transparent",color:perV===k?info.color:"#ffffff44",fontWeight:700,fontSize:11,cursor:"pointer"}}>{l}</button>
+                ))}
+              </div>
+              {perV==="custom"&&(
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:14}}>
+                  <div><Lbl>DESDE</Lbl><input type="date" value={vDe} onChange={e=>setVDe(e.target.value)} style={{...IS,fontSize:12}}/></div>
+                  <div><Lbl>HASTA</Lbl><input type="date" value={vHa} onChange={e=>setVHa(e.target.value)} style={{...IS,fontSize:12}}/></div>
+                </div>
+              )}
+              {/* KPI principal */}
+              <div style={{background:"#0d1525",borderRadius:14,padding:16,marginBottom:12,border:`1px solid ${info.color}18`}}>
+                <div style={{fontSize:10,color:"#ffffff44",letterSpacing:2,marginBottom:12}}>💰 TOTAL RECAUDADO — {PERSV.find(p=>p[0]===perV)?.[1]?.toUpperCase()}{perV==="custom"?` (${vDe} → ${vHa})`:""}</div>
+                <div style={{textAlign:"center",padding:"10px 0",marginBottom:12}}>
+                  <div style={{fontSize:9,color:"#4ade8066",marginBottom:4}}>Total ventas + cigarros</div>
+                  <div style={{fontSize:36,fontWeight:900,color:"#4ade80",letterSpacing:"-2px"}}>{fmt(tvF+tcvF)}</div>
+                </div>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:12}}>
+                  <div style={{background:"#4ade8012",borderRadius:10,padding:"10px",textAlign:"center"}}>
+                    <div style={{fontSize:9,color:"#4ade8066",marginBottom:3}}>💵 Efectivo</div>
+                    <div style={{fontSize:15,fontWeight:900,color:"#4ade80"}}>{fmt(efF)}</div>
+                    <div style={{fontSize:9,color:"#ffffff30",marginTop:2}}>en caja física</div>
+                  </div>
+                  <div style={{background:"#3b82f612",borderRadius:10,padding:"10px",textAlign:"center"}}>
+                    <div style={{fontSize:9,color:"#60a5fa66",marginBottom:3}}>💳 Tarjeta</div>
+                    <div style={{fontSize:15,fontWeight:900,color:"#60a5fa"}}>{fmt(tarF)}</div>
+                    <div style={{fontSize:9,color:"#ffffff30",marginTop:2}}>pago electrónico</div>
+                  </div>
+                  <div style={{background:"#8b5cf612",borderRadius:10,padding:"10px",textAlign:"center"}}>
+                    <div style={{fontSize:9,color:"#a78bfa66",marginBottom:3}}>🏦 Transfer.</div>
+                    <div style={{fontSize:15,fontWeight:900,color:"#a78bfa"}}>{fmt(transF)}</div>
+                    <div style={{fontSize:9,color:"#ffffff30",marginTop:2}}>pago electrónico</div>
+                  </div>
+                </div>
+                {tcvF>0&&<div style={{background:"#fbbf2410",borderRadius:10,padding:"10px 12px",marginBottom:8,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                  <span style={{fontSize:11,color:"#fbbf2488"}}>🚬 Ventas cigarros</span>
+                  <span style={{fontSize:13,fontWeight:800,color:"#fbbf24"}}>{fmt(tcvF)}</span>
+                </div>}
+                {tgF>0&&<div style={{background:"#f8717110",borderRadius:10,padding:"10px 12px",marginBottom:8,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                  <span style={{fontSize:11,color:"#f8717188"}}>📉 Gastos operacionales</span>
+                  <span style={{fontSize:13,fontWeight:800,color:"#f87171"}}>−{fmt(tgF)}</span>
+                </div>}
+                {comF>0&&<div style={{background:"#f8717108",borderRadius:10,padding:"8px 12px",marginBottom:8,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                  <span style={{fontSize:11,color:"#f8717166"}}>↳ Comisión tarjeta</span>
+                  <span style={{fontSize:12,fontWeight:700,color:"#f87171"}}>−{fmt(comF)}</span>
+                </div>}
+                <div style={{background:utilF>=0?"#4ade8015":"#f8717115",border:`1px solid ${utilF>=0?"#4ade8030":"#f8717130"}`,borderRadius:10,padding:"12px 14px",display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:4}}>
+                  <div>
+                    <div style={{fontSize:12,fontWeight:800,color:utilF>=0?"#4ade80":"#f87171"}}>💼 Utilidad operacional</div>
+                    <div style={{fontSize:10,color:"#ffffff44"}}>Dinero neto que debería quedar</div>
+                  </div>
+                  <div style={{fontSize:22,fontWeight:900,color:utilF>=0?"#4ade80":"#f87171"}}>{fmt(utilF)}</div>
+                </div>
+              </div>
+              {/* Listado de ventas */}
+              {vFil.length>0&&<>
+                <div style={{fontSize:10,color:"#ffffff22",letterSpacing:2,margin:"14px 0 8px"}}>📋 DETALLE DE VENTAS ({vFil.length})</div>
+                {vFil.map(v=>(
+                  <div key={v.id} style={{background:"#0d1525",borderRadius:9,padding:"9px 12px",marginBottom:5,display:"flex",justifyContent:"space-between",alignItems:"center",border:"1px solid #22c55e0a"}}>
+                    <div>
+                      <div style={{display:"flex",gap:5,marginBottom:2,flexWrap:"wrap"}}>
+                        <Tag label={TIPOS_PAGO.find(t=>t.id===v.tipo)?.label||v.tipo} color={v.tipo==="efectivo"?"#22c55e":v.tipo==="tarjeta"?"#3b82f6":"#8b5cf6"}/>
+                        {v.turno&&<Tag label={v.turno} color="#f97316"/>}
+                        <span style={{fontSize:10,color:"#ffffff33"}}>{v.fecha}</span>
+                      </div>
+                      {v.descripcion&&<div style={{fontSize:10,color:"#ffffff44"}}>{v.descripcion}</div>}
+                    </div>
+                    <span style={{fontSize:13,fontWeight:800,color:"#4ade80"}}>{fmt(v.monto)}</span>
+                  </div>
+                ))}
+              </>}
+              {vFil.length===0&&<Empty text="Sin ventas en este período"/>}
             </div>
           );
         })()}
@@ -2119,19 +2228,11 @@ function VistaVendedora({sesion,data,guardar,onSalir}){
               <Inp label="TELÉFONO" placeholder="Ej: +56 9 1234 5678" value={pF.contacto} onChange={v=>setPF(f=>({...f,contacto:v}))}/>
               <div style={{marginBottom:14}}>
                 <Lbl>CATEGORÍA</Lbl>
-                <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:8}}>
-                  {CATS_PROV.map(c=>(
-                    <button key={c} onClick={()=>setPF(f=>({...f,categoria:c,catPersonalizada:""}))}
-                      style={{padding:"6px 12px",borderRadius:8,border:`1px solid ${pF.categoria===c&&pF.categoria!=="__nueva__"?"#8b5cf6":"#ffffff12"}`,background:pF.categoria===c&&pF.categoria!=="__nueva__"?"#8b5cf620":"transparent",color:pF.categoria===c&&pF.categoria!=="__nueva__"?"#a78bfa":"#ffffff55",fontSize:11,fontWeight:700,cursor:"pointer"}}>
-                      {c}
-                    </button>
-                  ))}
-                  <button onClick={()=>setPF(f=>({...f,categoria:"__nueva__"}))}
-                    style={{padding:"6px 12px",borderRadius:8,border:`1px solid ${pF.categoria==="__nueva__"?"#4ade80":"#ffffff12"}`,background:pF.categoria==="__nueva__"?"#4ade8020":"transparent",color:pF.categoria==="__nueva__"?"#4ade80":"#ffffff44",fontSize:11,fontWeight:700,cursor:"pointer"}}>
-                    + Nueva
-                  </button>
-                </div>
-                {pF.categoria==="__nueva__"&&<input placeholder="Nombre de la nueva categoría..." value={pF.catPersonalizada} onChange={e=>setPF(f=>({...f,catPersonalizada:e.target.value}))} style={{...IS,fontSize:13}}/>}
+                <select value={pF.categoria==="__nueva__"?"__nueva__":pF.categoria} onChange={e=>setPF(f=>({...f,categoria:e.target.value,catPersonalizada:""}))} style={IS}>
+                  {CATS_PROV.map(c=><option key={c} value={c}>{c}</option>)}
+                  <option value="__nueva__">+ Nueva categoría...</option>
+                </select>
+                {pF.categoria==="__nueva__"&&<input placeholder="Escribe el nombre de la nueva categoría..." value={pF.catPersonalizada} onChange={e=>setPF(f=>({...f,catPersonalizada:e.target.value}))} style={{...IS,marginTop:8,fontSize:13}}/>}
               </div>
               <div style={{marginBottom:14}}>
                 <Lbl>TIPO</Lbl>
