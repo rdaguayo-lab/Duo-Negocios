@@ -1825,6 +1825,12 @@ function VistaVendedora({sesion,data,guardar,onSalir}){
   const [pF,setPF]=useState(eP); const [bF,setBF]=useState(eB);
   const [vacF,setVacF]=useState(eVF);
   const [editProvId,setEditProvId]=useState(null);
+  const [perCaja,setPerCaja]=useState("dia");
+  const [cajaDe,setCajaDe]=useState(hoy());
+  const [cajaHa,setCajaHa]=useState(hoy());
+  const [perV,setPerV]=useState("dia");
+  const [vDe,setVDe]=useState(hoy());
+  const [vHa,setVHa]=useState(hoy());
 
   const gP=async()=>{
     if(!pF.nombre)return;
@@ -1843,7 +1849,6 @@ function VistaVendedora({sesion,data,guardar,onSalir}){
   const gG=async()=>{if(!gF.monto)return;await upd({...sd,gastos:[{id:uid(),...gF,monto:+gF.monto},...gs]});setGF(eG);setModal(null);};
   const gCV=async()=>{if(!cvF.monto)return;await upd({...sd,cigarros:{...sd.cigarros,ventas:[{id:uid(),...cvF,monto:+cvF.monto},...cigV]}});setCvF(eCV);setModal(null);};
   const gCG=async()=>{if(!cgF.monto)return;await upd({...sd,cigarros:{...sd.cigarros,gastos:[{id:uid(),...cgF,monto:+cgF.monto},...cigG]}});setCgF(eCG);setModal(null);};
-  const gB=async()=>{if(!bF.monto)return;await upd({...sd,boletas:[{id:uid(),...bF,monto:+bF.monto,turno:sesion.turno},...bols]});setBF(eB);setModal(null);};
   const gB=async()=>{if(!bF.monto)return;await upd({...sd,boletas:[{id:uid(),...bF,monto:+bF.monto,turno:sesion.turno},...bols]});setBF(eB);setModal(null);};
 
   const dV=(id)=>upd({...sd,ventas:vs.filter(x=>x.id!==id)});
@@ -1922,9 +1927,6 @@ function VistaVendedora({sesion,data,guardar,onSalir}){
         )}
 
         {tab==="caja"&&(()=>{
-          const [perCaja,setPerCaja]=useState("dia");
-          const [cajaDe,setCajaDe]=useState(hoy());
-          const [cajaHa,setCajaHa]=useState(hoy());
           const PERS=[["dia","Hoy"],["semana","Semana"],["mes","Mes"],["año","Año"],["custom","Rango"]];
           const vP=filtroPer(vs,perCaja,cajaDe,cajaHa);
           const gP2=filtroPer(gs,perCaja,cajaDe,cajaHa);
@@ -2033,9 +2035,6 @@ function VistaVendedora({sesion,data,guardar,onSalir}){
         })()}
 
         {tab==="ventas"&&(()=>{
-          const [perV,setPerV]=useState("dia");
-          const [vDe,setVDe]=useState(hoy());
-          const [vHa,setVHa]=useState(hoy());
           const PERSV=[["dia","Hoy"],["semana","Semana"],["mes","Mes"],["año","Año"],["custom","Rango"]];
           const vFil=filtroPer(vs,perV,vDe,vHa);
           const cigVFil=filtroPer(sd.cigarros?.ventas||[],perV,vDe,vHa);
