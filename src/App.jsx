@@ -2169,6 +2169,8 @@ function VistaVendedora({sesion,data,guardar,onSalir}){
   const [perV,setPerV]=useState("dia");
   const [vDe,setVDe]=useState(hoy());
   const [vHa,setVHa]=useState(hoy());
+  const [diaHist,setDiaHist]=useState("");
+  const vsHist=diaHist?(vs.filter(v=>v.fecha===diaHist)):[]; 
 
   const gP=async()=>{
     if(!pF.nombre)return;
@@ -2184,7 +2186,7 @@ function VistaVendedora({sesion,data,guardar,onSalir}){
   const editarProv=(p)=>{setPF({nombre:p.nombre,contacto:p.contacto||"",vendedor:p.vendedor||"",categoria:p.categoria||"General",catPersonalizada:"",esCigarro:p.esCigarro||false});setEditProvId(p.id);setModal("prov");};
 
   const gV=async()=>{if(!vF.monto)return;await upd({...sd,ventas:[{id:uid(),...vF,monto:+vF.monto,turno:sesion.turno},...vs]});setVF(eV);setModal(null);};
-  const gG=async()=>{const montoG=parseFloat(String(gF.monto).replace(/\./g,""))||0;if(!montoG)return;const gastoNuevo={id:uid(),...gF,monto:montoG,pagadoPor:gF.pagadoPor||"sucursal",pagado:gF.pagadoPor==="sucursal"};await upd({...sd,gastos:[gastoNuevo,...gs]});if(gastoNuevo.pagadoPor!=="sucursal"){const admTarget=gastoNuevo.pagadoPor;const msg={id:uid(),de:"sistema",para:admTarget,tipo:"pago_pendiente",texto:`💸 Gasto pendiente de pago: ${fmt(montoG)} — ${gastoNuevo.descripcion||gastoNuevo.proveedor||gastoNuevo.tienda||"Sin detalle"} (${gastoNuevo.fecha})`,gastoId:gastoNuevo.id,suc:sd===data.carahue?"carahue":"temuco",leido:false,fecha:hoy()};guardar({...data,mensajes:[...(data.mensajes||[]),msg]});}setGF(eG);setModal(null);};
+  const gG=async()=>{const montoG=parseFloat(String(gF.monto).replace(/\./g,""))||0;if(!montoG)return;const gastoNuevo={id:uid(),...gF,monto:montoG,pagadoPor:gF.pagadoPor||"sucursal",pagado:gF.pagadoPor==="sucursal"};await upd({...sd,gastos:[gastoNuevo,...gs]});if(gastoNuevo.pagadoPor!=="sucursal"){const admTarget=gastoNuevo.pagadoPor;const msg={id:uid(),de:"sistema",para:admTarget,tipo:"pago_pendiente",texto:`💸 Gasto pendiente de pago: ${fmt(montoG)} — ${gastoNuevo.descripcion||gastoNuevo.proveedor||gastoNuevo.tienda||"Sin detalle"} (${gastoNuevo.fecha})`,gastoId:gastoNuevo.id,suc:suc,leido:false,fecha:hoy()};guardar({...data,mensajes:[...(data.mensajes||[]),msg]});}setGF(eG);setModal(null);};
   const gCV=async()=>{if(!cvF.monto)return;await upd({...sd,cigarros:{...sd.cigarros,ventas:[{id:uid(),...cvF,monto:+cvF.monto},...cigV]}});setCvF(eCV);setModal(null);};
   const gCG=async()=>{if(!cgF.monto)return;await upd({...sd,cigarros:{...sd.cigarros,gastos:[{id:uid(),...cgF,monto:+cgF.monto},...cigG]}});setCgF(eCG);setModal(null);};
   const gB=async()=>{if(!bF.monto)return;await upd({...sd,boletas:[{id:uid(),...bF,monto:+bF.monto,turno:sesion.turno},...bols]});setBF(eB);setModal(null);};
