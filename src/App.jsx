@@ -1,5 +1,4 @@
 // DUO Control de Negocios v2.8
-
 // FAVICON: agregar en public/index.html: <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'><rect width='120' height='120' rx='28' fill='%231a1a2e'/><rect x='18' y='38' width='38' height='44' rx='8' fill='none' stroke='%23ffffff' stroke-width='3'/><rect x='64' y='38' width='38' height='44' rx='8' fill='none' stroke='%236c63ff' stroke-width='3'/><text x='60' y='102' font-family='sans-serif' font-size='13' font-weight='700' fill='%23ffffff' text-anchor='middle' letter-spacing='3'>DUO</text></svg>"> — legibilidad, editar días anteriores, formato cifras, cigarros semanal/mensual/anual, gastos pagador, alertas admin, gestión claves, caja vecina
 import { useState, useMemo, useEffect } from "react";
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from "recharts";
@@ -342,7 +341,7 @@ export default function App(){
 function PantallaLogin({onLogin}){
   const [uid2,setUid]=useState(""); const [pass,setPass]=useState("");
   const [show,setShow]=useState(false); const [err,setErr]=useState("");
-  const entrar=()=>{ const u=USUARIOS.find(x=>x.id===uid2&&(data?.clavesPersonalizadas?.[x.id]||x.pass)===pass); if(!u){setErr("Usuario o contraseña incorrectos");return;} setErr(""); onLogin(u); };
+  const entrar=()=>{ const u=USUARIOS.find(x=>x.id===uid2&&x.pass===pass); if(!u){setErr("Usuario o contraseña incorrectos");return;} setErr(""); onLogin(u); };
   return(
     <div style={{minHeight:"100vh",background:"linear-gradient(155deg,#07090f,#0c1420)",display:"flex",alignItems:"center",justifyContent:"center",padding:20,fontFamily:"'DM Sans','Segoe UI',sans-serif"}}>
       <div style={{width:"100%",maxWidth:360}}>
