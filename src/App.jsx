@@ -315,6 +315,15 @@ export default function App(){
 
   // Escuchar cambios en tiempo real desde Firebase
   useEffect(()=>{
+    // Favicon DUO
+    const link=document.querySelector("link[rel='icon']")||document.createElement("link");
+    link.rel="icon";link.type="image/svg+xml";
+    link.href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'><rect width='120' height='120' rx='28' fill='%231a1a2e'/><rect x='18' y='38' width='38' height='44' rx='8' fill='none' stroke='%23ffffff' stroke-width='3'/><rect x='64' y='38' width='38' height='44' rx='8' fill='none' stroke='%236c63ff' stroke-width='3'/><text x='60' y='102' font-family='sans-serif' font-size='13' font-weight='700' fill='%23ffffff' text-anchor='middle' letter-spacing='3'>DUO</text></svg>";
+    if(!document.querySelector("link[rel='icon']"))document.head.appendChild(link);
+    document.title="DUO Control de Negocios";
+  },[]);
+
+  useEffect(()=>{
     const unsub=escucharFirebase((datosFirebase)=>{
       const merged=mergeData(datosFirebase);
       setData(merged);
@@ -479,7 +488,7 @@ function PanelNotas({sesion,data,guardar}){
     <div>
       <div style={{display:"flex",gap:8,marginBottom:16}}>
         {[["notas","📝 Notas"],["claves","🔑 Claves"]].map(([k,l])=>(
-          <button key={k} onClick={()=>setTab(k)} style={{padding:"6px 16px",borderRadius:20,border:"1px solid",borderColor:tab===k?"#f97316":"#ffffff12",background:tab===k?"#f9731614":"transparent",color:tab===k?"#f97316":"#ffffff44",fontSize:11,fontWeight:700,cursor:"pointer"}}>{l}</button>
+          <button key={k} onClick={()=>setTab(k)} style={{padding:"6px 16px",borderRadius:20,border:"1px solid",borderColor:tab===k?"#f97316":"#ffffff30",background:tab===k?"#f9731614":"transparent",color:tab===k?"#f97316":"#ffffffcc",fontWeight:700,fontSize:11,fontWeight:700,cursor:"pointer"}}>{l}</button>
         ))}
       </div>
       <div style={{background:"#0d1525",borderRadius:14,padding:16,marginBottom:14,border:"1px solid #ffffff0c"}}>
@@ -680,7 +689,18 @@ function PanelIVA({data,mes,setMes}){
               {iva.boletas.length>0&&(
                 <div style={{marginTop:8}}>
                   <div style={{fontSize:9,color:"#ffffff25",letterSpacing:2,marginBottom:5}}>BOLETAS DEL MES</div>
-                  {iva.boletas.map(b=>(<div key={b.id} style={{display:"flex",justifyContent:"space-between",padding:"4px 0",borderBottom:"1px solid #ffffff07",fontSize:11}}><span style={{color:"#ffffff44"}}>{b.fecha}{b.turno&&<span style={{color:"#f9731655"}}> · {b.turno}</span>}</span><span style={{color:"#a78bfa",fontWeight:700}}>{fmt(b.monto)}</span></div>))}
+                  {iva.boletas.map(b=>(<div key={b.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"5px 0",borderBottom:"1px solid #ffffff07",fontSize:11}}>
+                    <span style={{color:"#ffffff44"}}>{b.fecha}{b.turno&&<span style={{color:"#f9731655"}}> · {b.turno}</span>}</span>
+                    <div style={{display:"flex",gap:6,alignItems:"center"}}>
+                      <span style={{color:"#a78bfa",fontWeight:700}}>{fmt(b.monto)}</span>
+                      <button onClick={()=>{
+                        const nd=JSON.parse(JSON.stringify(data));
+                        const suc2=b.suc||Object.keys(nd).find(k=>nd[k]?.boletas?.find(x=>x.id===b.id));
+                        if(suc2&&nd[suc2]?.boletas)nd[suc2].boletas=nd[suc2].boletas.filter(x=>x.id!==b.id);
+                        guardar(nd);
+                      }} style={{background:"#ef444420",border:"none",color:"#f87171",width:22,height:22,borderRadius:6,cursor:"pointer",fontSize:11,display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
+                    </div>
+                  </div>))}
                 </div>
               )}
               {iva.boletas.length===0&&<div style={{fontSize:10,color:"#f8717166",marginTop:6}}>⚠️ Sin boletas registradas este mes</div>}
@@ -1698,10 +1718,54 @@ function DetalleSuc({suc,data,periodo,c1,c2}){
   return(
     <div>
       <div style={{display:"flex",gap:6,marginBottom:14,flexWrap:"wrap"}}>
-        {[["ventas","💰 Ventas"],["gastos","📉 Gastos"],["cigarros","🚬 Cigarros"]].map(([k,l])=>(<button key={k} onClick={()=>setSub(k)} style={{padding:"6px 14px",borderRadius:20,border:"1px solid",borderColor:sub===k?info.color:"#ffffff10",background:sub===k?info.color+"18":"transparent",color:sub===k?info.color:"#ffffff33",fontSize:11,fontWeight:700,cursor:"pointer"}}>{l}</button>))}
+        {[["ventas","💰 Ventas"],["gastos","📉 Gastos"],["cigarros","🚬 Cigarros"]].map(([k,l])=>(<button key={k} onClick={()=>setSub(k)} style={{padding:"6px 14px",borderRadius:20,border:"1px solid",borderColor:sub===k?info.color:"#ffffff10",background:sub===k?info.color+"18":"transparent",color:sub===k?info.color:"#ffffffcc",fontWeight:700,fontSize:11,fontWeight:700,cursor:"pointer"}}>{l}</button>))}
       </div>
       {sub==="ventas"&&(vs.length===0?<Empty text="Sin ventas"/>:vs.map(v=>(<div key={v.id} style={{background:"#0d1525",borderRadius:11,padding:"11px 13px",marginBottom:7,border:"1px solid #22c55e0c"}}><div style={{display:"flex",justifyContent:"space-between"}}><div><div style={{display:"flex",gap:5,flexWrap:"wrap",marginBottom:2}}>{TIPOS_PAGO.filter(t=>t.id===v.tipo).map(t=><Tag key={t.id} label={t.label} color={v.tipo==="efectivo"?"#22c55e":v.tipo==="tarjeta"?"#3b82f6":"#8b5cf6"}/>)}{v.turno&&<Tag label={v.turno} color="#f97316"/>}<span style={{fontSize:10,color:"#ffffff25"}}>{v.fecha}</span></div>{v.descripcion&&<div style={{fontSize:11,color:"#ffffff44"}}>{v.descripcion}</div>}</div><div style={{fontSize:14,fontWeight:900,color:"#4ade80"}}>{fmt(v.monto)}</div></div></div>)))}
-      {sub==="gastos"&&(gs.length===0?<Empty text="Sin gastos"/>:gs.map(g=>(<div key={g.id} style={{background:"#0d1525",borderRadius:11,padding:"11px 13px",marginBottom:7,border:`1px solid ${g.pagadoPor&&g.pagadoPor!=="sucursal"&&!g.pagado?"#fbbf2430":"#ef44440c"}`}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}><div style={{flex:1}}><div style={{display:"flex",gap:5,flexWrap:"wrap",marginBottom:2}}><Tag label={CAT_GASTO.find(c=>c.id===g.categoria)?.label||g.categoria} color="#f87171"/><span style={{fontSize:10,color:"#ffffff25"}}>{g.fecha}</span>{g.pagadoPor&&g.pagadoPor!=="sucursal"&&<span style={{fontSize:10,background:g.pagado?"#22c55e20":"#fbbf2420",color:g.pagado?"#4ade80":"#fbbf24",padding:"1px 6px",borderRadius:5,fontWeight:700}}>{g.pagado?"✅ Pagado":"⏳ "+g.pagadoPor}</span>}</div><div style={{fontSize:11,fontWeight:600}}>{g.proveedor||g.tienda||"—"}</div>{g.descripcion&&<div style={{fontSize:10,color:"#ffffff33"}}>{g.descripcion}</div>}{g.factura&&<div style={{fontSize:10,color:"#ffffff25"}}>#{g.factura}</div>}</div><div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:5}}><div style={{fontSize:14,fontWeight:900,color:"#f87171"}}>{fmt(g.monto)}</div>{g.pagadoPor&&g.pagadoPor!=="sucursal"&&!g.pagado&&(sesion.id==="dueno1"&&g.pagadoPor==="rodrigo"||sesion.id==="dueno2"&&g.pagadoPor==="jessica")&&<button onClick={()=>{const nd=JSON.parse(JSON.stringify(data));["carahue","temuco"].forEach(s=>{if(nd[s]?.gastos){nd[s].gastos=nd[s].gastos.map(x=>x.id===g.id?{...x,pagado:true,pagadoEl:hoy(),pagadoPorNombre:sesion.nombre}:x);}});guardar(nd);}} style={{background:"#22c55e20",border:"1px solid #22c55e40",color:"#4ade80",padding:"4px 10px",borderRadius:7,cursor:"pointer",fontSize:11,fontWeight:700}}>✅ Marcar pagado</button>}</div></div></div>)))}
+      {sub==="gastos"&&(<div>
+          {gs.filter(g=>g.pagadoPor==="admin"&&!g.pagado).length>0&&(
+            <div style={{background:"#fbbf2410",border:"1px solid #fbbf2430",borderRadius:12,padding:"12px 14px",marginBottom:14}}>
+              <div style={{fontSize:12,fontWeight:800,color:"#fbbf24",marginBottom:10}}>⏳ PENDIENTES DE VALIDACIÓN ({gs.filter(g=>g.pagadoPor==="admin"&&!g.pagado).length})</div>
+              {gs.filter(g=>g.pagadoPor==="admin"&&!g.pagado).map(g=>(
+                <div key={g.id} style={{background:"#0d1525",borderRadius:10,padding:"11px 13px",marginBottom:8,border:"1px solid #fbbf2425"}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8}}>
+                    <div style={{flex:1}}>
+                      <div style={{fontSize:12,fontWeight:700,color:"#f0ece8",marginBottom:3}}>{g.proveedor||g.tienda||g.descripcion||"—"}</div>
+                      <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
+                        <Tag label={CAT_GASTO.find(c=>c.id===g.categoria)?.label||g.categoria} color="#f87171"/>
+                        <span style={{fontSize:10,color:"#ffffff55"}}>Registrado: {g.fechaRegistro||g.fecha}</span>
+                        {g.adminPaga&&<span style={{fontSize:10,color:"#fbbf24",fontWeight:700}}>→ {g.adminPaga}</span>}
+                        <span style={{fontSize:14,fontWeight:900,color:"#f87171",marginLeft:4}}>{fmt(g.monto)}</span>
+                      </div>
+                    </div>
+                    <button onClick={()=>{
+                      const nd=JSON.parse(JSON.stringify(data));
+                      nd[suc].gastos=nd[suc].gastos.map(x=>x.id===g.id?{...x,pagado:true,fechaContable:hoy(),validadoPor:sesion.nombre,validadoEl:hoy()}:x);
+                      if(nd.mensajes)nd.mensajes=nd.mensajes.map(m=>m.gastoId===g.id?{...m,leido:true,validado:true}:m);
+                      guardar(nd);
+                    }} style={{background:"#22c55e20",border:"1px solid #22c55e50",color:"#4ade80",padding:"6px 14px",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:800,whiteSpace:"nowrap",flexShrink:0}}>✅ Validar</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          <div style={{fontSize:10,color:"#ffffffbb",letterSpacing:2,marginBottom:8,fontWeight:700}}>TODOS LOS GASTOS</div>
+          {gs.length===0?<Empty text="Sin gastos"/>:gs.map(g=>(
+            <div key={g.id} style={{background:"#0d1525",borderRadius:11,padding:"11px 13px",marginBottom:7,border:`1px solid ${g.pagadoPor==="admin"&&g.pagado?"#22c55e18":g.pagadoPor==="admin"&&!g.pagado?"#fbbf2420":"#ef44440c"}`}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <div style={{flex:1}}>
+                  <div style={{display:"flex",gap:5,flexWrap:"wrap",marginBottom:3}}>
+                    <Tag label={CAT_GASTO.find(c=>c.id===g.categoria)?.label||g.categoria} color="#f87171"/>
+                    <span style={{fontSize:10,color:"#ffffff44"}}>{g.fechaContable||g.fecha}</span>
+                    {g.pagadoPor==="admin"&&<span style={{fontSize:10,background:g.pagado?"#22c55e20":"#fbbf2420",color:g.pagado?"#4ade80":"#fbbf24",padding:"1px 6px",borderRadius:5,fontWeight:700}}>{g.pagado?`✅ ${g.validadoPor||"admin"}`:("⏳ Pendiente")}</span>}
+                  </div>
+                  <div style={{fontSize:12,fontWeight:600}}>{g.proveedor||g.tienda||"—"}</div>
+                  {g.descripcion&&<div style={{fontSize:11,color:"#ffffff44"}}>{g.descripcion}</div>}
+                </div>
+                <div style={{fontSize:14,fontWeight:900,color:"#f87171"}}>{fmt(g.monto)}</div>
+              </div>
+            </div>
+          ))}
+        </div>)}
       {sub==="cigarros"&&<div><CigarrosStats sd={data[suc]}/><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:12}}><div style={{background:"#fbbf2410",borderRadius:11,padding:11}}><div style={{fontSize:9,color:"#fbbf2455"}}>Ventas</div><div style={{fontSize:17,fontWeight:900,color:"#fbbf24"}}>{fmt(cigV.reduce((s,x)=>s+x.monto,0))}</div></div><div style={{background:"#f8717110",borderRadius:11,padding:11}}><div style={{fontSize:9,color:"#f8717155"}}>Compras</div><div style={{fontSize:17,fontWeight:900,color:"#f87171"}}>{fmt(cigG.reduce((s,x)=>s+x.monto,0))}</div></div></div>{cigV.map(v=>(<div key={v.id} style={{background:"#0d1525",borderRadius:10,padding:"9px 12px",marginBottom:5,display:"flex",justifyContent:"space-between"}}><span style={{fontSize:11}}>{v.descripcion||"Venta"}</span><span style={{color:"#fbbf24",fontWeight:800}}>{fmt(v.monto)}</span></div>))}{cigG.map(g=>(<div key={g.id} style={{background:"#0d1525",borderRadius:10,padding:"9px 12px",marginBottom:5,display:"flex",justifyContent:"space-between"}}><span style={{fontSize:11}}>{g.proveedor||"Compra"}</span><span style={{color:"#f87171",fontWeight:800}}>{fmt(g.monto)}</span></div>))}</div>}
     </div>
   );
@@ -1766,7 +1830,7 @@ function VistaDueno({sesion,data,guardar,onSalir}){
         </div>
         <div style={{display:"flex",overflowX:"auto"}}>
           {TABS.map(([k,l])=>(
-            <button key={k} onClick={()=>setTab(k)} style={{background:"none",border:"none",padding:"7px 10px",fontSize:11,fontWeight:700,color:tab===k?"#f97316":"#ffffff33",borderBottom:tab===k?"2px solid #f97316":"2px solid transparent",cursor:"pointer",whiteSpace:"nowrap",position:"relative"}}>
+            <button key={k} onClick={()=>setTab(k)} style={{background:"none",border:"none",padding:"7px 10px",fontSize:12,fontWeight:800,color:tab===k?"#f97316":"#ffffffcc",borderBottom:tab===k?"2px solid #f97316":"2px solid transparent",cursor:"pointer",whiteSpace:"nowrap",position:"relative"}}>
               {l}
               {k==="mensajes"&&msgNuevos>0&&<span style={{position:"absolute",top:3,right:3,background:"#f87171",borderRadius:"50%",width:7,height:7,display:"block"}}/>}
               {k==="chat"&&chatNuevos>0&&<span style={{position:"absolute",top:3,right:3,background:"#f97316",borderRadius:"50%",width:7,height:7,display:"block"}}/>}
@@ -2069,7 +2133,7 @@ function PanelCajaVecina({data,guardar}){
       <div style={{background:"#0d1525",borderRadius:14,padding:"14px",marginBottom:14,border:"1px solid #ffffff08"}}>
         <div style={{fontSize:10,color:"#ffffff44",letterSpacing:2,marginBottom:10}}>REGISTRAR</div>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:10}}>
-          {[["giro","💸 Giro"],["retiro","🏠 Retiro"]].map(([v,l])=>(<button key={v} onClick={()=>setForm(f=>({...f,tipo:v}))} style={{padding:"8px",borderRadius:9,border:"1px solid",borderColor:form.tipo===v?"#fbbf24":"#ffffff12",background:form.tipo===v?"#fbbf2415":"transparent",color:form.tipo===v?"#fbbf24":"#ffffff44",fontSize:12,fontWeight:700,cursor:"pointer"}}>{l}</button>))}
+          {[["giro","💸 Giro"],["retiro","🏠 Retiro"]].map(([v,l])=>(<button key={v} onClick={()=>setForm(f=>({...f,tipo:v}))} style={{padding:"8px",borderRadius:9,border:"1px solid",borderColor:form.tipo===v?"#fbbf24":"#ffffff12",background:form.tipo===v?"#fbbf2415":"transparent",color:form.tipo===v?"#fbbf24":"#ffffffcc",fontWeight:700,fontSize:12,fontWeight:700,cursor:"pointer"}}>{l}</button>))}
         </div>
         <Inp label="FECHA" type="date" value={form.fecha} onChange={v=>setForm(f=>({...f,fecha:v}))}/>
         <Inp label="MONTO ($)" money value={form.monto} onChange={v=>setForm(f=>({...f,monto:v}))}/>
@@ -2077,7 +2141,7 @@ function PanelCajaVecina({data,guardar}){
         <Btn onClick={guardarMov} color="#fbbf24">{editId?"Actualizar":"Registrar"}</Btn>
         {editId&&<button onClick={()=>{setEditId(null);setForm({fecha:hoy(),tipo:"giro",monto:"",descripcion:""});}} style={{width:"100%",background:"none",border:"1px solid #ffffff15",color:"#ffffff44",padding:"8px",borderRadius:9,cursor:"pointer",fontSize:12,marginTop:6}}>Cancelar edición</button>}
       </div>
-      <div style={{display:"flex",gap:5,flexWrap:"wrap",marginBottom:10}}>{PERS.map(([k,l])=>(<button key={k} onClick={()=>setPer(k)} style={{padding:"5px 10px",borderRadius:20,border:"1px solid",borderColor:per===k?"#60a5fa":"#ffffff12",background:per===k?"#3b82f620":"transparent",color:per===k?"#60a5fa":"#ffffff44",fontSize:11,fontWeight:700,cursor:"pointer"}}>{l}</button>))}</div>
+      <div style={{display:"flex",gap:5,flexWrap:"wrap",marginBottom:10}}>{PERS.map(([k,l])=>(<button key={k} onClick={()=>setPer(k)} style={{padding:"5px 10px",borderRadius:20,border:"1px solid",borderColor:per===k?"#60a5fa":"#ffffff12",background:per===k?"#3b82f620":"transparent",color:per===k?"#60a5fa":"#ffffffcc",fontWeight:700,fontSize:11,fontWeight:700,cursor:"pointer"}}>{l}</button>))}</div>
       {per==="rango"&&<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:10}}><Inp label="DESDE" type="date" value={c1} onChange={setC1}/><Inp label="HASTA" type="date" value={c2} onChange={setC2}/></div>}
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:12}}>
         <div style={{background:"#f8717110",borderRadius:10,padding:"10px 8px",textAlign:"center"}}><div style={{fontSize:9,color:"#f8717166"}}>GIROS</div><div style={{fontSize:13,fontWeight:900,color:"#f87171"}}>{fmt(totalGiros)}</div></div>
@@ -2186,7 +2250,28 @@ function VistaVendedora({sesion,data,guardar,onSalir}){
   const editarProv=(p)=>{setPF({nombre:p.nombre,contacto:p.contacto||"",vendedor:p.vendedor||"",categoria:p.categoria||"General",catPersonalizada:"",esCigarro:p.esCigarro||false});setEditProvId(p.id);setModal("prov");};
 
   const gV=async()=>{if(!vF.monto)return;await upd({...sd,ventas:[{id:uid(),...vF,monto:+vF.monto,turno:sesion.turno},...vs]});setVF(eV);setModal(null);};
-  const gG=async()=>{const montoG=parseFloat(String(gF.monto).replace(/\./g,""))||0;if(!montoG)return;const gastoNuevo={id:uid(),...gF,monto:montoG,pagadoPor:gF.pagadoPor||"sucursal",pagado:gF.pagadoPor==="sucursal"};await upd({...sd,gastos:[gastoNuevo,...gs]});if(gastoNuevo.pagadoPor!=="sucursal"){const admTarget=gastoNuevo.pagadoPor;const msg={id:uid(),de:"sistema",para:admTarget,tipo:"pago_pendiente",texto:`💸 Gasto pendiente de pago: ${fmt(montoG)} — ${gastoNuevo.descripcion||gastoNuevo.proveedor||gastoNuevo.tienda||"Sin detalle"} (${gastoNuevo.fecha})`,gastoId:gastoNuevo.id,suc:suc,leido:false,fecha:hoy()};guardar({...data,mensajes:[...(data.mensajes||[]),msg]});}setGF(eG);setModal(null);};
+  const gG=async()=>{
+    const montoG=parseFloat(String(gF.monto).replace(/\./g,""))||0;
+    if(!montoG)return;
+    const esPorAdmin=gF.pagadoPor==="admin";
+    const gastoNuevo={
+      id:uid(),...gF,monto:montoG,
+      pagadoPor:esPorAdmin?"admin":"sucursal",
+      adminPaga:gF.adminPaga||"",
+      pagado:!esPorAdmin,
+      fechaRegistro:hoy(),
+      fechaContable:esPorAdmin?null:hoy(),
+    };
+    const newData={...data,[suc]:{...sd,gastos:[gastoNuevo,...gs]}};
+    if(esPorAdmin){
+      const msg={id:uid(),de:sesion.id,para:"admins",tipo:"pago_pendiente",
+        texto:`💸 Gasto por validar: ${fmt(montoG)} — ${gastoNuevo.descripcion||gastoNuevo.proveedor||gastoNuevo.tienda||"Sin detalle"} (Registrado: ${hoy()}) — Sucursal: ${suc}`,
+        gastoId:gastoNuevo.id,gastoSuc:suc,monto:montoG,leido:false,fecha:hoy()};
+      newData.mensajes=[...(data.mensajes||[]),msg];
+    }
+    guardar(newData);
+    setGF(eG);setModal(null);
+  };
   const gCV=async()=>{if(!cvF.monto)return;await upd({...sd,cigarros:{...sd.cigarros,ventas:[{id:uid(),...cvF,monto:+cvF.monto},...cigV]}});setCvF(eCV);setModal(null);};
   const gCG=async()=>{if(!cgF.monto)return;await upd({...sd,cigarros:{...sd.cigarros,gastos:[{id:uid(),...cgF,monto:+cgF.monto},...cigG]}});setCgF(eCG);setModal(null);};
   const gB=async()=>{if(!bF.monto)return;await upd({...sd,boletas:[{id:uid(),...bF,monto:+bF.monto,turno:sesion.turno},...bols]});setBF(eB);setModal(null);};
@@ -2221,7 +2306,7 @@ function VistaVendedora({sesion,data,guardar,onSalir}){
   const catA=CAT_GASTO.find(c=>c.id===gF.categoria);
   const msgNuevos=(data.mensajes||[]).filter(m=>m.de==="dueno"&&(m.para==="todos"||m.para===suc)&&!m.leido).length;
 
-  const TABS=[["registrar","📝 Registrar"],["historial","🕐 Hoy"],["caja","💰 Mi Caja"],["cigarros","🚬 Cigarros"],["boletas","🧾 Boletas"],["vacaciones","🏖️ Vacaciones"],["mensajes","💬 Mensajes"],["notificar","📬 Notificar"],["proveedores","🏭 Proveedores"]];
+  const TABS=[["registrar","📝 Registrar"],["historial","🕐 Hoy"],["caja","💰 Mi Caja"],["cigarros","🚬 Cigarros"],["caja_vecina","🏦 Caja Vecina"],["boletas","🧾 Boletas"],["vacaciones","🏖️ Vacaciones"],["mensajes","💬 Mensajes"],["notificar","📬 Notificar"],["proveedores","🏭 Proveedores"]];
 
   return(
     <div style={{minHeight:"100vh",background:"#07090f",fontFamily:"'DM Sans','Segoe UI',sans-serif",color:"#f0ece8"}}>
@@ -2353,7 +2438,7 @@ function VistaVendedora({sesion,data,guardar,onSalir}){
               {/* Selector período */}
               <div style={{display:"flex",gap:6,marginBottom:perCaja==="custom"?8:16,flexWrap:"wrap"}}>
                 {PERS.map(([k,l])=>(
-                  <button key={k} onClick={()=>setPerCaja(k)} style={{flex:1,minWidth:50,padding:"8px 4px",borderRadius:9,border:`1px solid ${perCaja===k?info.color:"#ffffff12"}`,background:perCaja===k?info.color+"20":"transparent",color:perCaja===k?info.color:"#ffffff44",fontWeight:700,fontSize:11,cursor:"pointer"}}>{l}</button>
+                  <button key={k} onClick={()=>setPerCaja(k)} style={{flex:1,minWidth:50,padding:"8px 4px",borderRadius:9,border:`1px solid ${perCaja===k?info.color:"#ffffff12"}`,background:perCaja===k?info.color+"20":"transparent",color:perCaja===k?info.color:"#ffffffcc",fontWeight:700,fontWeight:700,fontSize:11,cursor:"pointer"}}>{l}</button>
                 ))}
               </div>
               {perCaja==="custom"&&(
@@ -2449,6 +2534,8 @@ function VistaVendedora({sesion,data,guardar,onSalir}){
             {cvHoy.length===0&&cgHoy.length===0&&<Empty text="Sin registros hoy"/>}
           </div>
         )}
+
+        {tab==="caja_vecina"&&<PanelCajaVecina data={data} guardar={guardar}/>}
 
         {tab==="boletas"&&(
           <div>
@@ -2579,7 +2666,7 @@ function VistaVendedora({sesion,data,guardar,onSalir}){
             {modal==="venta"&&<>
               <div style={{fontSize:16,fontWeight:900,marginBottom:18}}>💰 Registrar Venta</div>
               <Inp label="FECHA" type="date" value={vF.fecha} onChange={v=>setVF(f=>({...f,fecha:v}))}/>
-              <div style={{marginBottom:14}}><Lbl>TIPO DE PAGO</Lbl><div style={{display:"flex",gap:6,flexWrap:"wrap"}}>{TIPOS_PAGO.map(t=>(<button key={t.id} onClick={()=>setVF(f=>({...f,tipo:t.id}))} style={{flex:1,minWidth:90,padding:"9px 6px",borderRadius:10,border:`1px solid ${vF.tipo===t.id?info.color:"#ffffff12"}`,background:vF.tipo===t.id?info.color+"20":"transparent",color:vF.tipo===t.id?info.color:"#ffffff44",fontWeight:700,fontSize:12,cursor:"pointer"}}>{t.label}</button>))}</div>{vF.tipo==="tarjeta"&&(data.comision?.[suc]||0)>0&&<div style={{fontSize:10,color:"#f8717199",marginTop:5}}>⚠️ Se descontará {data.comision[suc]}% de comisión al calcular utilidad</div>}</div>
+              <div style={{marginBottom:14}}><Lbl>TIPO DE PAGO</Lbl><div style={{display:"flex",gap:6,flexWrap:"wrap"}}>{TIPOS_PAGO.map(t=>(<button key={t.id} onClick={()=>setVF(f=>({...f,tipo:t.id}))} style={{flex:1,minWidth:90,padding:"9px 6px",borderRadius:10,border:`1px solid ${vF.tipo===t.id?info.color:"#ffffff12"}`,background:vF.tipo===t.id?info.color+"20":"transparent",color:vF.tipo===t.id?info.color:"#ffffffcc",fontWeight:700,fontWeight:700,fontSize:12,cursor:"pointer"}}>{t.label}</button>))}</div>{vF.tipo==="tarjeta"&&(data.comision?.[suc]||0)>0&&<div style={{fontSize:10,color:"#f8717199",marginTop:5}}>⚠️ Se descontará {data.comision[suc]}% de comisión al calcular utilidad</div>}</div>
               <Inp label="MONTO ($)" type="number" placeholder="0" value={vF.monto} onChange={v=>setVF(f=>({...f,monto:v}))}/>
               <Inp label="DESCRIPCIÓN (opcional)" value={vF.descripcion} onChange={v=>setVF(f=>({...f,descripcion:v}))}/>
               {sesion.turno&&<div style={{background:info.color+"12",borderRadius:8,padding:"7px 12px",fontSize:11,color:info.color,marginBottom:12}}>Turno: {sesion.turno}</div>}
@@ -2596,6 +2683,26 @@ function VistaVendedora({sesion,data,guardar,onSalir}){
               <Inp label="N° FACTURA (opcional)" value={gF.factura} onChange={v=>setGF(f=>({...f,factura:v}))}/>
               <Inp label="MONTO ($)" type="number" placeholder="0" value={gF.monto} onChange={v=>setGF(f=>({...f,monto:v}))}/>
               <Inp label="¿QUÉ SE COMPRÓ?" value={gF.descripcion} onChange={v=>setGF(f=>({...f,descripcion:v}))}/>
+              <div style={{marginBottom:14}}>
+                <Lbl>¿CÓMO SE PAGA?</Lbl>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:8}}>
+                  {[["sucursal","💵 Caja sucursal"],["admin","👤 Administración"]].map(([v,l])=>(
+                    <button key={v} onClick={()=>setGF(f=>({...f,pagadoPor:v,adminPaga:""}))} style={{padding:"10px 8px",borderRadius:9,border:"1px solid",borderColor:(gF.pagadoPor||"sucursal")===v?"#f97316":"#ffffff20",background:(gF.pagadoPor||"sucursal")===v?"#f9731618":"#0d1525",color:(gF.pagadoPor||"sucursal")===v?"#f97316":"#ffffffcc",fontSize:12,fontWeight:700,cursor:"pointer"}}>{l}</button>
+                  ))}
+                </div>
+                {gF.pagadoPor==="admin"&&(
+                  <div>
+                    <Lbl>¿QUÉ ADMINISTRADOR?</Lbl>
+                    <select value={gF.adminPaga||""} onChange={e=>setGF(f=>({...f,adminPaga:e.target.value}))} style={IS}>
+                      <option value="">-- Seleccionar --</option>
+                      <option value="rodrigo">👤 Rodrigo</option>
+                      <option value="jessica">👤 Jessica</option>
+                      <option value="cualquiera">👥 Cualquiera</option>
+                    </select>
+                    <div style={{fontSize:11,color:"#fbbf24",background:"#fbbf2410",borderRadius:8,padding:"8px 10px",marginTop:6,lineHeight:1.5}}>⚠️ Quedará <strong>pendiente</strong> hasta que el administrador lo valide. La fecha contable será la de validación.</div>
+                  </div>
+                )}
+              </div>
               <Btn onClick={gG} color="#ef4444" loading={gnd}>Guardar Gasto</Btn>
             </>}
 
