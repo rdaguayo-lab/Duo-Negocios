@@ -1,4 +1,4 @@
-// DUO Control de Negocios v2.9 — formato cifras, textos blancos, Mi Caja separado, cigarros sin duplicado, Caja Vecina mejorada, chat eliminar, gastos sucursal/admin separados, reporte con períodos, tab Pagos
+// DUO Control de Negocios v3.0 — formato cifras, textos blancos, Mi Caja separado, cigarros sin duplicado, Caja Vecina mejorada, chat eliminar, gastos sucursal/admin separados, reporte con períodos, tab Pagos
 // FAVICON: agregar en public/index.html: <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'><rect width='120' height='120' rx='28' fill='%231a1a2e'/><rect x='18' y='38' width='38' height='44' rx='8' fill='none' stroke='%23ffffff' stroke-width='3'/><rect x='64' y='38' width='38' height='44' rx='8' fill='none' stroke='%236c63ff' stroke-width='3'/><text x='60' y='102' font-family='sans-serif' font-size='13' font-weight='700' fill='%23ffffff' text-anchor='middle' letter-spacing='3'>DUO</text></svg>"> — legibilidad, editar días anteriores, formato cifras, cigarros semanal/mensual/anual, gastos pagador, alertas admin, gestión claves, caja vecina
 import { useState, useMemo, useEffect } from "react";
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from "recharts";
@@ -6,7 +6,7 @@ import { guardarFirebase, escucharFirebase } from './firebase';
 
 
 // ── ESTILOS ───────────────────────────────────────────────
-const IS = { width:"100%", padding:"11px 13px", borderRadius:10, boxSizing:"border-box", border:"1px solid #ffffff20", background:"#07090f", color:"#f0ece8", fontSize:14, outline:"none" };
+const IS = { width:"100%", padding:"11px 13px", borderRadius:10, boxSizing:"border-box", border:"1px solid #ffffff20", background:"#07090f", color:"#f0ece8", fontSize:14, outline:"none", colorScheme:"dark" };
 const GB = { background:"#ffffff0c", border:"none", color:"#ffffff44", padding:"5px 12px", borderRadius:8, cursor:"pointer", fontSize:11 };
 
 // ── CONSTANTES ────────────────────────────────────────────
@@ -491,7 +491,7 @@ function PanelNotas({sesion,data,guardar}){
     <div>
       <div style={{display:"flex",gap:8,marginBottom:16}}>
         {[["notas","📝 Notas"],["claves","🔑 Claves"]].map(([k,l])=>(
-          <button key={k} onClick={()=>setTab(k)} style={{padding:"6px 16px",borderRadius:20,border:"1px solid",borderColor:tab===k?"#f97316":"#ffffff30",background:tab===k?"#f9731614":"transparent",color:tab===k?"#f97316":"#ffffffcc",fontWeight:700,fontSize:11,fontWeight:700,cursor:"pointer"}}>{l}</button>
+          <button key={k} onClick={()=>setTab(k)} style={{padding:"6px 16px",borderRadius:20,border:"1px solid",borderColor:tab===k?"#f97316":"#ffffff30",background:tab===k?"#f9731614":"transparent",color:tab===k?"#f97316":"#ffffff",fontWeight:700,fontSize:11,fontWeight:700,cursor:"pointer"}}>{l}</button>
         ))}
       </div>
       <div style={{background:"#0d1525",borderRadius:14,padding:16,marginBottom:14,border:"1px solid #ffffff0c"}}>
@@ -1804,8 +1804,8 @@ function VistaDueno({sesion,data,guardar,onSalir}){
   const chatNuevos=(data.chatDuenos||[]).filter(m=>m.de!==sesion.id).length;
 
   const PERIODOS=[{k:"dia",l:"Hoy"},{k:"semana",l:"Semana"},{k:"mes",l:"Mes"},{k:"año",l:"Año"},{k:"custom",l:"Rango"}];
-  const TABS=[["resumen","📊 Resumen"],["reporte","📋 Reporte"],["iva","🧾 IVA/PPM"],["tuu","💳 TUU"],["informes","📄 Informes"],["graficos","📈 Gráficos"],["gastos","💼 Gastos"],["trabajadores","👥 RRHH"],["mensajes","💬 Equipo"],["chat","🔒 Chat"],["notas","📝 Notas"],["notificar","📬 Notificar"],["carahue","🌿 Carahue"],["temuco","🏙️ Temuco"],["caja_vecina","🏦 Caja Vecina"],["usuarios","👤 Usuarios"],["pagos","💸 Pagos"]];
-  const SIN_FILTRO=["reporte","iva","tuu","informes","gastos","trabajadores","mensajes","chat","notas","notificar","caja_vecina","usuarios","pagos"];
+  const TABS=[["resumen","📊 Resumen"],["reporte","📋 Reporte"],["iva","🧾 IVA/PPM"],["tuu","💳 TUU"],["informes","📄 Informes"],["graficos","📈 Gráficos"],["gastos","💼 Gastos"],["trabajadores","👥 RRHH"],["mensajes","💬 Equipo"],["chat","🔒 Chat"],["notas","📝 Notas"],["notificar","📬 Notificar"],["carahue","🌿 Carahue"],["temuco","🏙️ Temuco"],["caja_vecina","🏦 Caja Vecina"],["usuarios","👤 Usuarios"],["pagos","💸 Pagos"],["reset","🗑️ Datos"]];
+  const SIN_FILTRO=["reporte","iva","tuu","informes","gastos","trabajadores","mensajes","chat","notas","notificar","caja_vecina","usuarios","pagos","reset"];
 
   const setFB=(suc,id,v)=>guardar({...data,fijosBase:{...data.fijosBase,[suc]:{...(data.fijosBase?.[suc]||{}),[id]:parseFloat(v)||0}}});
   const setFO=(mk,suc,id,v)=>{const o=JSON.parse(JSON.stringify(data.fijosOv||{}));if(!o[mk])o[mk]={};if(!o[mk][suc])o[mk][suc]={};o[mk][suc][id]=parseFloat(v)||0;guardar({...data,fijosOv:o});};
@@ -1833,7 +1833,7 @@ function VistaDueno({sesion,data,guardar,onSalir}){
         </div>
         <div style={{display:"flex",overflowX:"auto"}}>
           {TABS.map(([k,l])=>(
-            <button key={k} onClick={()=>setTab(k)} style={{background:"none",border:"none",padding:"7px 10px",fontSize:12,fontWeight:800,color:tab===k?"#f97316":"#ffffffcc",borderBottom:tab===k?"2px solid #f97316":"2px solid transparent",cursor:"pointer",whiteSpace:"nowrap",position:"relative"}}>
+            <button key={k} onClick={()=>setTab(k)} style={{background:"none",border:"none",padding:"7px 10px",fontSize:13,fontWeight:900,color:tab===k?"#f97316":"#ffffff",borderBottom:tab===k?"2px solid #f97316":"2px solid transparent",cursor:"pointer",whiteSpace:"nowrap",position:"relative"}}>
               {l}
               {k==="mensajes"&&msgNuevos>0&&<span style={{position:"absolute",top:3,right:3,background:"#f87171",borderRadius:"50%",width:7,height:7,display:"block"}}/>}
               {k==="chat"&&chatNuevos>0&&<span style={{position:"absolute",top:3,right:3,background:"#f97316",borderRadius:"50%",width:7,height:7,display:"block"}}/>}
@@ -2040,6 +2040,7 @@ function VistaDueno({sesion,data,guardar,onSalir}){
         {tab==="caja_vecina"&&<PanelCajaVecina data={data} guardar={guardar}/>}
         {tab==="usuarios"&&<PanelUsuarios data={data} guardar={guardar}/>}
         {tab==="pagos"&&<PanelPagos sesion={sesion} data={data} guardar={guardar}/>}
+        {tab==="reset"&&<PanelReset data={data} guardar={guardar}/>}
       </div>
     </div>
   );
@@ -2306,6 +2307,82 @@ function PanelPagos({sesion,data,guardar}){
   );
 }
 
+
+// ── PANEL RESET DATOS ──
+function PanelReset({data,guardar}){
+  const [confirm,setConfirm]=useState("");
+  const [done,setDone]=useState(false);
+
+  const DATO_BASE={
+    carahue:{ventas:[],gastos:[],proveedores:data.carahue?.proveedores||[],cigarros:{ventas:[],gastos:[]},boletas:[]},
+    temuco:{ventas:[],gastos:[],proveedores:data.temuco?.proveedores||[],cigarros:{ventas:[],gastos:[]},boletas:[]},
+    mensajes:[],chatDuenos:[],notas:[],
+    trabajadores:data.trabajadores||[],
+    cajaVecina:data.cajaVecina||{linea:0,movimientos:[]},
+    comision:data.comision||{},
+    fijosBase:data.fijosBase||{},varBase:data.varBase||{},
+    fijosExtra:data.fijosExtra||{},varExtra:data.varExtra||{},
+    sueldosDetalle:data.sueldosDetalle||{},
+    clavesPersonalizadas:data.clavesPersonalizadas||{},
+    tuu:data.tuu||{},
+  };
+
+  const resetTodo=()=>{
+    if(confirm!=="RESETEAR")return;
+    guardar({...DATO_BASE});
+    setDone(true);setConfirm("");
+  };
+
+  const resetSuc=(suc)=>{
+    const nd=JSON.parse(JSON.stringify(data));
+    nd[suc]={ventas:[],gastos:[],proveedores:data[suc]?.proveedores||[],cigarros:{ventas:[],gastos:[]},boletas:[]};
+    guardar(nd);setDone(true);
+  };
+
+  const resetMensajes=()=>{
+    guardar({...data,mensajes:[],chatDuenos:[]});
+    setDone(true);
+  };
+
+  return(
+    <div>
+      {done&&<div style={{background:"#22c55e15",border:"1px solid #22c55e30",borderRadius:10,padding:"10px 14px",marginBottom:14,fontSize:13,color:"#4ade80"}}>✅ Datos eliminados correctamente</div>}
+      
+      <div style={{background:"#ef444415",border:"1px solid #ef444430",borderRadius:12,padding:"12px 14px",marginBottom:16}}>
+        <div style={{fontSize:12,fontWeight:800,color:"#f87171",marginBottom:6}}>⚠️ ZONA DE PELIGRO</div>
+        <div style={{fontSize:11,color:"#ffffff66",lineHeight:1.6}}>
+          Esta sección elimina datos de prueba. Los datos de configuración (proveedores, gastos fijos, sueldos, claves) se mantienen. Solo se eliminan ventas, gastos diarios, boletas, cigarros y mensajes.
+        </div>
+      </div>
+
+      {/* Reset por sucursal */}
+      <div style={{background:"#0d1525",borderRadius:14,padding:"14px 16px",marginBottom:12,border:"1px solid #ffffff0a"}}>
+        <div style={{fontSize:12,fontWeight:800,color:"#ffffffdd",marginBottom:12}}>🌿 Resetear solo una sucursal</div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+          <button onClick={()=>{if(window.confirm("¿Eliminar TODOS los registros de Carahue (ventas, gastos, boletas, cigarros)?"))resetSuc("carahue");}} style={{background:"#22c55e15",border:"1px solid #22c55e30",color:"#4ade80",padding:"10px",borderRadius:9,cursor:"pointer",fontSize:12,fontWeight:700}}>🌿 Limpiar Carahue</button>
+          <button onClick={()=>{if(window.confirm("¿Eliminar TODOS los registros de Temuco (ventas, gastos, boletas, cigarros)?"))resetSuc("temuco");}} style={{background:"#3b82f615",border:"1px solid #3b82f630",color:"#60a5fa",padding:"10px",borderRadius:9,cursor:"pointer",fontSize:12,fontWeight:700}}>🏙️ Limpiar Temuco</button>
+        </div>
+      </div>
+
+      {/* Reset mensajes */}
+      <div style={{background:"#0d1525",borderRadius:14,padding:"14px 16px",marginBottom:12,border:"1px solid #ffffff0a"}}>
+        <div style={{fontSize:12,fontWeight:800,color:"#ffffffdd",marginBottom:10}}>💬 Limpiar mensajes y chat</div>
+        <button onClick={()=>{if(window.confirm("¿Eliminar todos los mensajes y chat?"))resetMensajes();}} style={{background:"#8b5cf615",border:"1px solid #8b5cf630",color:"#a78bfa",padding:"10px",borderRadius:9,cursor:"pointer",fontSize:12,fontWeight:700,width:"100%"}}>🗑️ Eliminar mensajes y chat</button>
+      </div>
+
+      {/* Reset total */}
+      <div style={{background:"#ef444410",border:"2px solid #ef444430",borderRadius:14,padding:"14px 16px"}}>
+        <div style={{fontSize:12,fontWeight:800,color:"#f87171",marginBottom:10}}>🗑️ Reset total (todas las sucursales)</div>
+        <div style={{fontSize:11,color:"#ffffff55",marginBottom:12}}>Escribe <strong style={{color:"#f87171"}}>RESETEAR</strong> para confirmar:</div>
+        <input value={confirm} onChange={e=>setConfirm(e.target.value)} placeholder="Escribe RESETEAR" style={{...IS,marginBottom:12,borderColor:confirm==="RESETEAR"?"#f87171":"#ffffff15"}}/>
+        <button onClick={resetTodo} disabled={confirm!=="RESETEAR"} style={{background:confirm==="RESETEAR"?"#ef444420":"#ffffff08",border:`1px solid ${confirm==="RESETEAR"?"#ef444450":"#ffffff10"}`,color:confirm==="RESETEAR"?"#f87171":"#ffffff33",padding:"10px",borderRadius:9,cursor:confirm==="RESETEAR"?"pointer":"not-allowed",fontSize:13,fontWeight:800,width:"100%"}}>
+          🗑️ RESETEAR TODOS LOS DATOS DE PRUEBA
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ── VISTA VENDEDORA ───────────────────────────────────────
 function VistaVendedora({sesion,data,guardar,onSalir}){
   const suc=sesion.sucursal; const info=SUCS[suc];
@@ -2422,7 +2499,7 @@ function VistaVendedora({sesion,data,guardar,onSalir}){
           <button onClick={onSalir} style={GB}>Salir</button>
         </div>
         <div style={{display:"flex",overflowX:"auto"}}>
-          {TABS.map(([k,l])=>(<button key={k} onClick={()=>setTab(k)} style={{background:"none",border:"none",padding:"7px 10px",fontSize:11,fontWeight:700,color:tab===k?info.color:"#ffffff33",borderBottom:tab===k?`2px solid ${info.color}`:"2px solid transparent",cursor:"pointer",whiteSpace:"nowrap",position:"relative"}}>{l}{k==="mensajes"&&msgNuevos>0&&<span style={{position:"absolute",top:3,right:3,background:"#f87171",borderRadius:"50%",width:7,height:7,display:"block"}}/>}</button>))}
+          {TABS.map(([k,l])=>(<button key={k} onClick={()=>setTab(k)} style={{background:"none",border:"none",padding:"7px 10px",fontSize:11,fontWeight:900,color:tab===k?info.color:"#ffffff",borderBottom:tab===k?`2px solid ${info.color}`:"2px solid transparent",cursor:"pointer",whiteSpace:"nowrap",position:"relative"}}>{l}{k==="mensajes"&&msgNuevos>0&&<span style={{position:"absolute",top:3,right:3,background:"#f87171",borderRadius:"50%",width:7,height:7,display:"block"}}/>}</button>))}
         </div>
       </div>
 
@@ -2679,7 +2756,7 @@ function VistaVendedora({sesion,data,guardar,onSalir}){
           );
         })()}
 
-        tab==="cigarros"&&(
+        {tab==="cigarros"&&(
           <div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:14}}><QBtn icon="🚬" label="+ Venta" color="#fbbf24" onClick={()=>setModal("cigV")}/><QBtn icon="📦" label="+ Compra" color="#f87171" onClick={()=>setModal("cigG")}/></div>
             <CigarrosStats sd={sd}/>
@@ -2695,7 +2772,7 @@ function VistaVendedora({sesion,data,guardar,onSalir}){
           <div>
             <div style={{background:"#8b5cf610",border:"1px solid #8b5cf622",borderRadius:12,padding:"12px 14px",marginBottom:16,fontSize:11,color:"#a78bfa"}}>🧾 Registra el total de boletas emitidas en tu turno. Los administradores usan este dato para calcular el IVA y PPM mensual.</div>
             <div style={{background:"#0d1525",borderRadius:14,padding:16,marginBottom:16,border:"1px solid #8b5cf618"}}>
-              <Inp label="FECHA" type="date" value={bF.fecha} onChange={v=>setBF(f=>({...f,fecha:v}))}/>
+              <Inp label="FECHA" type="date" value={bF.fecha} onChange={v=>setBF(f=>({...f,fecha:v}))} style={{colorScheme:"dark"}}/>
               <Inp label="TOTAL BOLETAS ($)" money value={bF.monto} onChange={v=>setBF(f=>({...f,monto:v}))}/>
               {sesion.turno&&<div style={{background:"#8b5cf612",borderRadius:8,padding:"7px 12px",fontSize:11,color:"#a78bfa",marginBottom:12}}>Turno: {sesion.turno}</div>}
               {bF.monto>0&&(()=>{
