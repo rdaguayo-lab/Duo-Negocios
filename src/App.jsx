@@ -1,4 +1,4 @@
-// DUO Control de Negocios v3.1 — formato cifras, textos blancos, Mi Caja separado, cigarros sin duplicado, Caja Vecina mejorada, chat eliminar, gastos sucursal/admin separados, reporte con períodos, tab Pagos
+// DUO Control de Negocios v3.2 — formato cifras, textos blancos, Mi Caja separado, cigarros sin duplicado, Caja Vecina mejorada, chat eliminar, gastos sucursal/admin separados, reporte con períodos, tab Pagos
 // FAVICON: agregar en public/index.html: <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'><rect width='120' height='120' rx='28' fill='%231a1a2e'/><rect x='18' y='38' width='38' height='44' rx='8' fill='none' stroke='%23ffffff' stroke-width='3'/><rect x='64' y='38' width='38' height='44' rx='8' fill='none' stroke='%236c63ff' stroke-width='3'/><text x='60' y='102' font-family='sans-serif' font-size='13' font-weight='700' fill='%23ffffff' text-anchor='middle' letter-spacing='3'>DUO</text></svg>"> — legibilidad, editar días anteriores, formato cifras, cigarros semanal/mensual/anual, gastos pagador, alertas admin, gestión claves, caja vecina
 import { useState, useMemo, useEffect } from "react";
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from "recharts";
@@ -1861,7 +1861,7 @@ function VistaDueno({sesion,data,guardar,onSalir}){
       <div style={{padding:16,maxWidth:860,margin:"0 auto"}}>
         {!SIN_FILTRO.includes(tab)&&(
           <div style={{display:"flex",gap:6,marginBottom:16,flexWrap:"wrap"}}>
-            {PERIODOS.map(p=>(<button key={p.k} onClick={()=>setPer(p.k)} style={{padding:"5px 12px",borderRadius:20,border:"1px solid",borderColor:periodo===p.k?"#f97316":"#ffffff10",background:periodo===p.k?"#f9731614":"transparent",color:periodo===p.k?"#f97316":"#ffffff33",fontSize:11,fontWeight:700,cursor:"pointer"}}>{p.l}</button>))}
+            {PERIODOS.map(p=>(<button key={p.k} onClick={()=>setPer(p.k)} style={{padding:"5px 12px",borderRadius:20,border:"1px solid",borderColor:periodo===p.k?"#f97316":"#ffffff10",background:periodo===p.k?"#f9731614":"transparent",color:periodo===p.k?"#f97316":"#ffffffcc",fontSize:11,fontWeight:700,cursor:"pointer"}}>{p.l}</button>))}
             {periodo==="custom"&&<><input type="date" value={c1} onChange={e=>setC1(e.target.value)} style={{...IS,width:"auto"}}/><input type="date" value={c2} onChange={e=>setC2(e.target.value)} style={{...IS,width:"auto"}}/></>}
           </div>
         )}
@@ -2459,7 +2459,7 @@ function VistaVendedora({sesion,data,guardar,onSalir}){
           <button onClick={onSalir} style={GB}>Salir</button>
         </div>
         <div style={{display:"flex",overflowX:"auto"}}>
-          {TABS.map(([k,l])=>(<button key={k} onClick={()=>setTab(k)} style={{background:"none",border:"none",padding:"7px 10px",fontSize:11,fontWeight:700,color:tab===k?info.color:"#ffffff33",borderBottom:tab===k?`2px solid ${info.color}`:"2px solid transparent",cursor:"pointer",whiteSpace:"nowrap",position:"relative"}}>{l}{k==="mensajes"&&msgNuevos>0&&<span style={{position:"absolute",top:3,right:3,background:"#f87171",borderRadius:"50%",width:7,height:7,display:"block"}}/>}</button>))}
+          {TABS.map(([k,l])=>(<button key={k} onClick={()=>setTab(k)} style={{background:"none",border:"none",padding:"7px 10px",fontSize:12,fontWeight:900,color:tab===k?info.color:"#ffffff",borderBottom:tab===k?`2px solid ${info.color}`:"2px solid transparent",cursor:"pointer",whiteSpace:"nowrap",position:"relative"}}>{l}{k==="mensajes"&&msgNuevos>0&&<span style={{position:"absolute",top:3,right:3,background:"#f87171",borderRadius:"50%",width:7,height:7,display:"block"}}/>}</button>))}
         </div>
       </div>
 
@@ -2564,6 +2564,11 @@ function VistaVendedora({sesion,data,guardar,onSalir}){
               ))}
             </>}
             {vHoy.length===0&&gHoy.length===0&&<Empty text="Sin registros hoy"/>}
+            {(vHoy.length>0||gHoy.length>0||cvHoy.length>0||cgHoy.length>0)&&(
+              <button onClick={()=>{if(window.confirm("¿Eliminar TODOS los registros de hoy? (ventas, gastos, cigarros)")){{upd({...sd,ventas:vs.filter(v=>v.fecha!==hoy()),gastos:gs.filter(g=>g.fecha!==hoy()),cigarros:{...sd.cigarros,ventas:cigV.filter(v=>v.fecha!==hoy()),gastos:cigG.filter(g=>g.fecha!==hoy())}});}}}} style={{width:"100%",margin:"14px 0 0",padding:"10px",borderRadius:10,border:"1px solid #ef444430",background:"#ef444410",color:"#f87171",fontWeight:700,fontSize:12,cursor:"pointer"}}>
+                🗑️ Borrar todos los registros de hoy
+              </button>
+            )}
           </div>
         )}
 
@@ -2716,7 +2721,7 @@ function VistaVendedora({sesion,data,guardar,onSalir}){
           );
         })()}
 
-        tab==="cigarros"&&(
+        {tab==="cigarros"&&(
           <div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:14}}><QBtn icon="🚬" label="+ Venta" color="#fbbf24" onClick={()=>setModal("cigV")}/><QBtn icon="📦" label="+ Compra" color="#f87171" onClick={()=>setModal("cigG")}/></div>
             <CigarrosStats sd={sd}/>
