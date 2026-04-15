@@ -1,4 +1,4 @@
-// DUO Control de Negocios v3.0 — formato cifras, textos blancos, Mi Caja separado, cigarros sin duplicado, Caja Vecina mejorada, chat eliminar, gastos sucursal/admin separados, reporte con períodos, tab Pagos
+// DUO Control de Negocios v3.1 — formato cifras, textos blancos, Mi Caja separado, cigarros sin duplicado, Caja Vecina mejorada, chat eliminar, gastos sucursal/admin separados, reporte con períodos, tab Pagos
 // FAVICON: agregar en public/index.html: <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'><rect width='120' height='120' rx='28' fill='%231a1a2e'/><rect x='18' y='38' width='38' height='44' rx='8' fill='none' stroke='%23ffffff' stroke-width='3'/><rect x='64' y='38' width='38' height='44' rx='8' fill='none' stroke='%236c63ff' stroke-width='3'/><text x='60' y='102' font-family='sans-serif' font-size='13' font-weight='700' fill='%23ffffff' text-anchor='middle' letter-spacing='3'>DUO</text></svg>"> — legibilidad, editar días anteriores, formato cifras, cigarros semanal/mensual/anual, gastos pagador, alertas admin, gestión claves, caja vecina
 import { useState, useMemo, useEffect } from "react";
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from "recharts";
@@ -6,8 +6,8 @@ import { guardarFirebase, escucharFirebase } from './firebase';
 
 
 // ── ESTILOS ───────────────────────────────────────────────
-const IS = { width:"100%", padding:"11px 13px", borderRadius:10, boxSizing:"border-box", border:"1px solid #ffffff20", background:"#07090f", color:"#f0ece8", fontSize:14, outline:"none", colorScheme:"dark" };
-const GB = { background:"#ffffff0c", border:"none", color:"#ffffff44", padding:"5px 12px", borderRadius:8, cursor:"pointer", fontSize:11 };
+const IS = { width:"100%", padding:"11px 13px", borderRadius:10, boxSizing:"border-box", border:"1px solid #ffffff20", background:"#07090f", color:"#f0ece8", fontSize:14, outline:"none" };
+const GB = { background:"#f9731620", border:"1px solid #f9731640", color:"#f97316", padding:"8px 16px", borderRadius:10, cursor:"pointer", fontSize:12, fontWeight:700 };
 
 // ── CONSTANTES ────────────────────────────────────────────
 const CORREOS_DUENOS = ["rdaguayo@gmail.com", "avello.jessica@gmail.com"];
@@ -248,9 +248,13 @@ function mergeData(s) {
 
 // ── MICRO COMPONENTES ─────────────────────────────────────
 function Lbl({children}){ return <div style={{fontSize:10,color:"#ffffff40",letterSpacing:2,marginBottom:5}}>{children}</div>; }
-function Inp({label,type="text",value,onChange,placeholder,rows}){
+function Inp({label,type="text",value,onChange,placeholder,rows,money=false}){
   const stop=(e)=>e.stopPropagation();
   if(rows) return <div style={{marginBottom:14}} onClick={stop}><Lbl>{label}</Lbl><textarea rows={rows} value={value||""} placeholder={placeholder} onClick={stop} onFocus={stop} onChange={e=>{stop(e);onChange(e.target.value);}} style={{...IS,resize:"vertical",lineHeight:1.6}}/></div>;
+  if(money){
+    const display=value?Number(String(value).replace(/\./g,"")).toLocaleString("es-CL"):"";
+    return <div style={{marginBottom:14}} onClick={stop}><Lbl>{label}</Lbl><input type="text" inputMode="numeric" value={display} placeholder={placeholder||"0"} onClick={stop} onFocus={stop} onChange={e=>{stop(e);const raw=e.target.value.replace(/\./g,"");onChange(raw);}} style={IS}/></div>;
+  }
   return <div style={{marginBottom:14}} onClick={stop}><Lbl>{label}</Lbl><input type={type} inputMode={type==="number"?"numeric":undefined} value={value||""} placeholder={placeholder} onClick={stop} onFocus={stop} onChange={e=>{stop(e);onChange(e.target.value);}} style={IS}/></div>;
 }
 function Sel({label,value,onChange,children}){ return <div style={{marginBottom:14}} onClick={e=>e.stopPropagation()}><Lbl>{label}</Lbl><select value={value} onClick={e=>e.stopPropagation()} onFocus={e=>e.stopPropagation()} onChange={e=>{e.stopPropagation();onChange(e.target.value);}} style={IS}>{children}</select></div>; }
@@ -491,7 +495,7 @@ function PanelNotas({sesion,data,guardar}){
     <div>
       <div style={{display:"flex",gap:8,marginBottom:16}}>
         {[["notas","📝 Notas"],["claves","🔑 Claves"]].map(([k,l])=>(
-          <button key={k} onClick={()=>setTab(k)} style={{padding:"6px 16px",borderRadius:20,border:"1px solid",borderColor:tab===k?"#f97316":"#ffffff30",background:tab===k?"#f9731614":"transparent",color:tab===k?"#f97316":"#ffffff",fontWeight:700,fontSize:11,fontWeight:700,cursor:"pointer"}}>{l}</button>
+          <button key={k} onClick={()=>setTab(k)} style={{padding:"6px 16px",borderRadius:20,border:"1px solid",borderColor:tab===k?"#f97316":"#ffffff30",background:tab===k?"#f9731614":"transparent",color:tab===k?"#f97316":"#ffffffcc",fontWeight:700,fontSize:11,fontWeight:700,cursor:"pointer"}}>{l}</button>
         ))}
       </div>
       <div style={{background:"#0d1525",borderRadius:14,padding:16,marginBottom:14,border:"1px solid #ffffff0c"}}>
@@ -1712,7 +1716,7 @@ function TrabajadoresPanel({data,updTrab,aprobar,rechazar,guardar}){
 }
 
 // ── DETALLE SUCURSAL ──────────────────────────────────────
-function DetalleSuc({suc,data,periodo,c1,c2}){
+function DetalleSuc({suc,data,periodo,c1,c2,guardar,sesion}){
   const info=SUCS[suc]; const [sub,setSub]=useState("ventas");
   const vs=filtroPer(data[suc]?.ventas||[],periodo,c1,c2);
   const gs=filtroPer(data[suc]?.gastos||[],periodo,c1,c2);
@@ -1804,8 +1808,8 @@ function VistaDueno({sesion,data,guardar,onSalir}){
   const chatNuevos=(data.chatDuenos||[]).filter(m=>m.de!==sesion.id).length;
 
   const PERIODOS=[{k:"dia",l:"Hoy"},{k:"semana",l:"Semana"},{k:"mes",l:"Mes"},{k:"año",l:"Año"},{k:"custom",l:"Rango"}];
-  const TABS=[["resumen","📊 Resumen"],["reporte","📋 Reporte"],["iva","🧾 IVA/PPM"],["tuu","💳 TUU"],["informes","📄 Informes"],["graficos","📈 Gráficos"],["gastos","💼 Gastos"],["trabajadores","👥 RRHH"],["mensajes","💬 Equipo"],["chat","🔒 Chat"],["notas","📝 Notas"],["notificar","📬 Notificar"],["carahue","🌿 Carahue"],["temuco","🏙️ Temuco"],["caja_vecina","🏦 Caja Vecina"],["usuarios","👤 Usuarios"],["pagos","💸 Pagos"],["reset","🗑️ Datos"]];
-  const SIN_FILTRO=["reporte","iva","tuu","informes","gastos","trabajadores","mensajes","chat","notas","notificar","caja_vecina","usuarios","pagos","reset"];
+  const TABS=[["resumen","📊 Resumen"],["reporte","📋 Reporte"],["iva","🧾 IVA/PPM"],["tuu","💳 TUU"],["informes","📄 Informes"],["graficos","📈 Gráficos"],["gastos","💼 Gastos"],["trabajadores","👥 RRHH"],["mensajes","💬 Equipo"],["chat","🔒 Chat"],["notas","📝 Notas"],["notificar","📬 Notificar"],["carahue","🌿 Carahue"],["temuco","🏙️ Temuco"],["caja_vecina","🏦 Caja Vecina"],["usuarios","👤 Usuarios"],["pagos","💸 Pagos"]];
+  const SIN_FILTRO=["reporte","iva","tuu","informes","gastos","trabajadores","mensajes","chat","notas","notificar","caja_vecina","usuarios","pagos"];
 
   const setFB=(suc,id,v)=>guardar({...data,fijosBase:{...data.fijosBase,[suc]:{...(data.fijosBase?.[suc]||{}),[id]:parseFloat(v)||0}}});
   const setFO=(mk,suc,id,v)=>{const o=JSON.parse(JSON.stringify(data.fijosOv||{}));if(!o[mk])o[mk]={};if(!o[mk][suc])o[mk][suc]={};o[mk][suc][id]=parseFloat(v)||0;guardar({...data,fijosOv:o});};
@@ -1833,7 +1837,7 @@ function VistaDueno({sesion,data,guardar,onSalir}){
         </div>
         <div style={{display:"flex",overflowX:"auto"}}>
           {TABS.map(([k,l])=>(
-            <button key={k} onClick={()=>setTab(k)} style={{background:"none",border:"none",padding:"7px 10px",fontSize:13,fontWeight:900,color:tab===k?"#f97316":"#ffffff",borderBottom:tab===k?"2px solid #f97316":"2px solid transparent",cursor:"pointer",whiteSpace:"nowrap",position:"relative"}}>
+            <button key={k} onClick={()=>setTab(k)} style={{background:"none",border:"none",padding:"7px 10px",fontSize:12,fontWeight:800,color:tab===k?"#f97316":"#ffffffcc",borderBottom:tab===k?"2px solid #f97316":"2px solid transparent",cursor:"pointer",whiteSpace:"nowrap",position:"relative"}}>
               {l}
               {k==="mensajes"&&msgNuevos>0&&<span style={{position:"absolute",top:3,right:3,background:"#f87171",borderRadius:"50%",width:7,height:7,display:"block"}}/>}
               {k==="chat"&&chatNuevos>0&&<span style={{position:"absolute",top:3,right:3,background:"#f97316",borderRadius:"50%",width:7,height:7,display:"block"}}/>}
@@ -2036,11 +2040,10 @@ function VistaDueno({sesion,data,guardar,onSalir}){
         {tab==="chat"&&<ChatDuenos sesion={sesion} data={data} guardar={guardar}/>}
         {tab==="notas"&&<PanelNotas sesion={sesion} data={data} guardar={guardar}/>}
         {tab==="notificar"&&<PanelNotificar sesion={sesion} data={data} esDueno={true} rc={rc} rt={rt} mes={mes}/>}
-        {(tab==="carahue"||tab==="temuco")&&<DetalleSuc suc={tab} data={data} periodo={periodo} c1={c1} c2={c2}/>}
+        {(tab==="carahue"||tab==="temuco")&&<DetalleSuc suc={tab} data={data} periodo={periodo} c1={c1} c2={c2} guardar={guardar} sesion={sesion}/>}
         {tab==="caja_vecina"&&<PanelCajaVecina data={data} guardar={guardar}/>}
         {tab==="usuarios"&&<PanelUsuarios data={data} guardar={guardar}/>}
         {tab==="pagos"&&<PanelPagos sesion={sesion} data={data} guardar={guardar}/>}
-        {tab==="reset"&&<PanelReset data={data} guardar={guardar}/>}
       </div>
     </div>
   );
@@ -2166,7 +2169,7 @@ function PanelCajaVecina({data,guardar}){
       {per==="rango"&&<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:10}}><Inp label="DESDE" type="date" value={c1} onChange={setC1}/><Inp label="HASTA" type="date" value={c2} onChange={setC2}/></div>}
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:12}}>
         <div style={{background:"#f8717110",borderRadius:10,padding:"10px 8px",textAlign:"center"}}><div style={{fontSize:9,color:"#f8717166"}}>GIROS</div><div style={{fontSize:13,fontWeight:900,color:"#f87171"}}>{fmt(totalGiros)}</div></div>
-        <div style={{background:"#22c55e10",borderRadius:10,padding:"10px 8px",textAlign:"center"}}><div style={{fontSize:9,color:"#4ade8066"}}>RETIROS</div><div style={{fontSize:13,fontWeight:900,color:"#4ade80"}}>{fmt(totalRetiros)}</div></div>
+        <div style={{background:"#22c55e10",borderRadius:10,padding:"10px 8px",textAlign:"center"}}><div style={{fontSize:9,color:"#4ade8066"}}>DEPÓSITOS</div><div style={{fontSize:13,fontWeight:900,color:"#4ade80"}}>{fmt(totalDepositos)}</div></div>
         <div style={{background:"#3b82f610",borderRadius:10,padding:"10px 8px",textAlign:"center"}}><div style={{fontSize:9,color:"#60a5fa66"}}>MOV.</div><div style={{fontSize:13,fontWeight:900,color:"#60a5fa"}}>{movFilt.length}</div></div>
       </div>
       {movFilt.length===0?<Empty text="Sin movimientos"/>:movFilt.map(m=>(
@@ -2224,6 +2227,25 @@ function CigarrosStats({sd}){
 
 // ── PANEL PAGOS ADMIN ──
 function PanelPagos({sesion,data,guardar}){
+  const [perPagos,setPerPagos]=useState("mes");
+  const [pagosDe,setPagosDe]=useState(hoy());
+  const [pagosHa,setPagosHa]=useState(hoy());
+  const [diaCalendario,setDiaCalendario]=useState("");
+
+  const filtrarPagos=(arr)=>{
+    const n=new Date();
+    return arr.filter(g=>{
+      const fecha=g.fechaContable||g.fecha||"";
+      if(perPagos==="dia") return fecha===hoy();
+      if(perPagos==="semana"){const dow=n.getDay();const diff=dow===0?6:dow-1;const ini=new Date(n);ini.setDate(n.getDate()-diff);const h2d=(d)=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;return fecha>=h2d(ini)&&fecha<=hoy();}
+      if(perPagos==="mes") return fecha.startsWith(hoy().slice(0,7));
+      if(perPagos==="año") return fecha.startsWith(hoy().slice(0,4));
+      if(perPagos==="rango") return fecha>=pagosDe&&fecha<=pagosHa;
+      if(perPagos==="dia_esp") return fecha===diaCalendario;
+      return true;
+    });
+  };
+
   const gastosPend=useMemo(()=>{
     const todos=[];
     ["carahue","temuco"].forEach(suc=>{
@@ -2237,8 +2259,9 @@ function PanelPagos({sesion,data,guardar}){
     ["carahue","temuco"].forEach(suc=>{
       (data[suc]?.gastos||[]).filter(g=>g.pagadoPor==="admin"&&g.pagado).forEach(g=>todos.push({...g,suc}));
     });
-    return todos.sort((a,b)=>(b.fechaContable||b.fecha).localeCompare(a.fechaContable||a.fecha)).slice(0,20);
+    return todos.sort((a,b)=>(b.fechaContable||b.fecha).localeCompare(a.fechaContable||a.fecha));
   },[data]);
+  const gastosValidadosFilt=filtrarPagos(gastosValidados);
 
   const validar=(g)=>{
     const nd=JSON.parse(JSON.stringify(data));
@@ -2247,8 +2270,21 @@ function PanelPagos({sesion,data,guardar}){
     guardar(nd);
   };
 
+  const PERS_PAG=[["dia","Hoy"],["semana","Sem"],["mes","Mes"],["año","Año"],["rango","Rango"],["dia_esp","📅 Día"]];
   return(
     <div>
+      {/* Filtros período */}
+      <div style={{display:"flex",gap:5,flexWrap:"wrap",marginBottom:10}}>
+        {PERS_PAG.map(([k,l])=>(<button key={k} onClick={()=>setPerPagos(k)} style={{padding:"5px 10px",borderRadius:20,border:"1px solid",borderColor:perPagos===k?"#fbbf24":"#ffffff12",background:perPagos===k?"#fbbf2420":"transparent",color:perPagos===k?"#fbbf24":"#ffffffcc",fontSize:11,fontWeight:700,cursor:"pointer"}}>{l}</button>))}
+      </div>
+      {perPagos==="rango"&&<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:10}}>
+        <div><Lbl>DESDE</Lbl><input type="date" value={pagosDe} onChange={e=>setPagosDe(e.target.value)} style={IS}/></div>
+        <div><Lbl>HASTA</Lbl><input type="date" value={pagosHa} onChange={e=>setPagosHa(e.target.value)} style={IS}/></div>
+      </div>}
+      {perPagos==="dia_esp"&&<div style={{marginBottom:10}}>
+        <Lbl>SELECCIONAR DÍA</Lbl>
+        <input type="date" value={diaCalendario} onChange={e=>setDiaCalendario(e.target.value)} style={{...IS,maxWidth:220}}/>
+      </div>}
       {/* Alertas pendientes */}
       {gastosPend.length>0&&(
         <div style={{background:"#fbbf2412",border:"1px solid #fbbf2430",borderRadius:12,padding:"12px 14px",marginBottom:16}}>
@@ -2282,10 +2318,10 @@ function PanelPagos({sesion,data,guardar}){
         </div>
       )}
       {/* Historial pagados */}
-      {gastosValidados.length>0&&(
+      {gastosValidadosFilt.length>0&&(
         <div>
-          <div style={{fontSize:11,color:"#ffffffcc",letterSpacing:2,marginBottom:10,fontWeight:700}}>✅ ÚLTIMOS PAGOS REALIZADOS</div>
-          {gastosValidados.map(g=>(
+          <div style={{fontSize:11,color:"#ffffffcc",letterSpacing:2,marginBottom:10,fontWeight:700}}>✅ PAGOS REALIZADOS ({gastosValidadosFilt.length})</div>
+          {gastosValidadosFilt.map(g=>(
             <div key={g.id} style={{background:"#0d1525",borderRadius:10,padding:"11px 13px",marginBottom:6,border:"1px solid #22c55e12"}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                 <div>
@@ -2303,82 +2339,6 @@ function PanelPagos({sesion,data,guardar}){
           ))}
         </div>
       )}
-    </div>
-  );
-}
-
-
-// ── PANEL RESET DATOS ──
-function PanelReset({data,guardar}){
-  const [confirm,setConfirm]=useState("");
-  const [done,setDone]=useState(false);
-
-  const DATO_BASE={
-    carahue:{ventas:[],gastos:[],proveedores:data.carahue?.proveedores||[],cigarros:{ventas:[],gastos:[]},boletas:[]},
-    temuco:{ventas:[],gastos:[],proveedores:data.temuco?.proveedores||[],cigarros:{ventas:[],gastos:[]},boletas:[]},
-    mensajes:[],chatDuenos:[],notas:[],
-    trabajadores:data.trabajadores||[],
-    cajaVecina:data.cajaVecina||{linea:0,movimientos:[]},
-    comision:data.comision||{},
-    fijosBase:data.fijosBase||{},varBase:data.varBase||{},
-    fijosExtra:data.fijosExtra||{},varExtra:data.varExtra||{},
-    sueldosDetalle:data.sueldosDetalle||{},
-    clavesPersonalizadas:data.clavesPersonalizadas||{},
-    tuu:data.tuu||{},
-  };
-
-  const resetTodo=()=>{
-    if(confirm!=="RESETEAR")return;
-    guardar({...DATO_BASE});
-    setDone(true);setConfirm("");
-  };
-
-  const resetSuc=(suc)=>{
-    const nd=JSON.parse(JSON.stringify(data));
-    nd[suc]={ventas:[],gastos:[],proveedores:data[suc]?.proveedores||[],cigarros:{ventas:[],gastos:[]},boletas:[]};
-    guardar(nd);setDone(true);
-  };
-
-  const resetMensajes=()=>{
-    guardar({...data,mensajes:[],chatDuenos:[]});
-    setDone(true);
-  };
-
-  return(
-    <div>
-      {done&&<div style={{background:"#22c55e15",border:"1px solid #22c55e30",borderRadius:10,padding:"10px 14px",marginBottom:14,fontSize:13,color:"#4ade80"}}>✅ Datos eliminados correctamente</div>}
-      
-      <div style={{background:"#ef444415",border:"1px solid #ef444430",borderRadius:12,padding:"12px 14px",marginBottom:16}}>
-        <div style={{fontSize:12,fontWeight:800,color:"#f87171",marginBottom:6}}>⚠️ ZONA DE PELIGRO</div>
-        <div style={{fontSize:11,color:"#ffffff66",lineHeight:1.6}}>
-          Esta sección elimina datos de prueba. Los datos de configuración (proveedores, gastos fijos, sueldos, claves) se mantienen. Solo se eliminan ventas, gastos diarios, boletas, cigarros y mensajes.
-        </div>
-      </div>
-
-      {/* Reset por sucursal */}
-      <div style={{background:"#0d1525",borderRadius:14,padding:"14px 16px",marginBottom:12,border:"1px solid #ffffff0a"}}>
-        <div style={{fontSize:12,fontWeight:800,color:"#ffffffdd",marginBottom:12}}>🌿 Resetear solo una sucursal</div>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-          <button onClick={()=>{if(window.confirm("¿Eliminar TODOS los registros de Carahue (ventas, gastos, boletas, cigarros)?"))resetSuc("carahue");}} style={{background:"#22c55e15",border:"1px solid #22c55e30",color:"#4ade80",padding:"10px",borderRadius:9,cursor:"pointer",fontSize:12,fontWeight:700}}>🌿 Limpiar Carahue</button>
-          <button onClick={()=>{if(window.confirm("¿Eliminar TODOS los registros de Temuco (ventas, gastos, boletas, cigarros)?"))resetSuc("temuco");}} style={{background:"#3b82f615",border:"1px solid #3b82f630",color:"#60a5fa",padding:"10px",borderRadius:9,cursor:"pointer",fontSize:12,fontWeight:700}}>🏙️ Limpiar Temuco</button>
-        </div>
-      </div>
-
-      {/* Reset mensajes */}
-      <div style={{background:"#0d1525",borderRadius:14,padding:"14px 16px",marginBottom:12,border:"1px solid #ffffff0a"}}>
-        <div style={{fontSize:12,fontWeight:800,color:"#ffffffdd",marginBottom:10}}>💬 Limpiar mensajes y chat</div>
-        <button onClick={()=>{if(window.confirm("¿Eliminar todos los mensajes y chat?"))resetMensajes();}} style={{background:"#8b5cf615",border:"1px solid #8b5cf630",color:"#a78bfa",padding:"10px",borderRadius:9,cursor:"pointer",fontSize:12,fontWeight:700,width:"100%"}}>🗑️ Eliminar mensajes y chat</button>
-      </div>
-
-      {/* Reset total */}
-      <div style={{background:"#ef444410",border:"2px solid #ef444430",borderRadius:14,padding:"14px 16px"}}>
-        <div style={{fontSize:12,fontWeight:800,color:"#f87171",marginBottom:10}}>🗑️ Reset total (todas las sucursales)</div>
-        <div style={{fontSize:11,color:"#ffffff55",marginBottom:12}}>Escribe <strong style={{color:"#f87171"}}>RESETEAR</strong> para confirmar:</div>
-        <input value={confirm} onChange={e=>setConfirm(e.target.value)} placeholder="Escribe RESETEAR" style={{...IS,marginBottom:12,borderColor:confirm==="RESETEAR"?"#f87171":"#ffffff15"}}/>
-        <button onClick={resetTodo} disabled={confirm!=="RESETEAR"} style={{background:confirm==="RESETEAR"?"#ef444420":"#ffffff08",border:`1px solid ${confirm==="RESETEAR"?"#ef444450":"#ffffff10"}`,color:confirm==="RESETEAR"?"#f87171":"#ffffff33",padding:"10px",borderRadius:9,cursor:confirm==="RESETEAR"?"pointer":"not-allowed",fontSize:13,fontWeight:800,width:"100%"}}>
-          🗑️ RESETEAR TODOS LOS DATOS DE PRUEBA
-        </button>
-      </div>
     </div>
   );
 }
@@ -2432,7 +2392,7 @@ function VistaVendedora({sesion,data,guardar,onSalir}){
   };
   const editarProv=(p)=>{setPF({nombre:p.nombre,contacto:p.contacto||"",vendedor:p.vendedor||"",categoria:p.categoria||"General",catPersonalizada:"",esCigarro:p.esCigarro||false});setEditProvId(p.id);setModal("prov");};
 
-  const gV=async()=>{if(!vF.monto)return;await upd({...sd,ventas:[{id:uid(),...vF,monto:+vF.monto,turno:sesion.turno},...vs]});setVF(eV);setModal(null);};
+  const gV=async()=>{const montoV=parseFloat(String(vF.monto).replace(/\./g,""))||0;if(!montoV)return;await upd({...sd,ventas:[{id:uid(),...vF,monto:montoV,turno:sesion.turno},...vs]});setVF(eV);setModal(null);};
   const gG=async()=>{
     const montoG=parseFloat(String(gF.monto).replace(/\./g,""))||0;
     if(!montoG)return;
@@ -2455,9 +2415,9 @@ function VistaVendedora({sesion,data,guardar,onSalir}){
     guardar(newData);
     setGF(eG);setModal(null);
   };
-  const gCV=async()=>{if(!cvF.monto)return;await upd({...sd,cigarros:{...sd.cigarros,ventas:[{id:uid(),...cvF,monto:+cvF.monto},...cigV]}});setCvF(eCV);setModal(null);};
-  const gCG=async()=>{if(!cgF.monto)return;await upd({...sd,cigarros:{...sd.cigarros,gastos:[{id:uid(),...cgF,monto:+cgF.monto},...cigG]}});setCgF(eCG);setModal(null);};
-  const gB=async()=>{if(!bF.monto)return;await upd({...sd,boletas:[{id:uid(),...bF,monto:+bF.monto,turno:sesion.turno},...bols]});setBF(eB);setModal(null);};
+  const gCV=async()=>{const montoCV=parseFloat(String(cvF.monto).replace(/\./g,""))||0;if(!montoCV)return;await upd({...sd,cigarros:{...sd.cigarros,ventas:[{id:uid(),...cvF,monto:montoCV},...cigV]}});setCvF(eCV);setModal(null);};
+  const gCG=async()=>{const montoCG=parseFloat(String(cgF.monto).replace(/\./g,""))||0;if(!montoCG)return;await upd({...sd,cigarros:{...sd.cigarros,gastos:[{id:uid(),...cgF,monto:montoCG},...cigG]}});setCgF(eCG);setModal(null);};
+  const gB=async()=>{const montoB=parseFloat(String(bF.monto).replace(/\./g,""))||0;if(!montoB)return;await upd({...sd,boletas:[{id:uid(),...bF,monto:montoB,turno:sesion.turno},...bols]});setBF(eB);setModal(null);};
 
   const dV=(id)=>upd({...sd,ventas:vs.filter(x=>x.id!==id)});
   const dG=(id)=>upd({...sd,gastos:gs.filter(x=>x.id!==id)});
@@ -2499,7 +2459,7 @@ function VistaVendedora({sesion,data,guardar,onSalir}){
           <button onClick={onSalir} style={GB}>Salir</button>
         </div>
         <div style={{display:"flex",overflowX:"auto"}}>
-          {TABS.map(([k,l])=>(<button key={k} onClick={()=>setTab(k)} style={{background:"none",border:"none",padding:"7px 10px",fontSize:11,fontWeight:900,color:tab===k?info.color:"#ffffff",borderBottom:tab===k?`2px solid ${info.color}`:"2px solid transparent",cursor:"pointer",whiteSpace:"nowrap",position:"relative"}}>{l}{k==="mensajes"&&msgNuevos>0&&<span style={{position:"absolute",top:3,right:3,background:"#f87171",borderRadius:"50%",width:7,height:7,display:"block"}}/>}</button>))}
+          {TABS.map(([k,l])=>(<button key={k} onClick={()=>setTab(k)} style={{background:"none",border:"none",padding:"7px 10px",fontSize:11,fontWeight:700,color:tab===k?info.color:"#ffffff33",borderBottom:tab===k?`2px solid ${info.color}`:"2px solid transparent",cursor:"pointer",whiteSpace:"nowrap",position:"relative"}}>{l}{k==="mensajes"&&msgNuevos>0&&<span style={{position:"absolute",top:3,right:3,background:"#f87171",borderRadius:"50%",width:7,height:7,display:"block"}}/>}</button>))}
         </div>
       </div>
 
@@ -2756,7 +2716,7 @@ function VistaVendedora({sesion,data,guardar,onSalir}){
           );
         })()}
 
-        {tab==="cigarros"&&(
+        tab==="cigarros"&&(
           <div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:14}}><QBtn icon="🚬" label="+ Venta" color="#fbbf24" onClick={()=>setModal("cigV")}/><QBtn icon="📦" label="+ Compra" color="#f87171" onClick={()=>setModal("cigG")}/></div>
             <CigarrosStats sd={sd}/>
@@ -2772,7 +2732,7 @@ function VistaVendedora({sesion,data,guardar,onSalir}){
           <div>
             <div style={{background:"#8b5cf610",border:"1px solid #8b5cf622",borderRadius:12,padding:"12px 14px",marginBottom:16,fontSize:11,color:"#a78bfa"}}>🧾 Registra el total de boletas emitidas en tu turno. Los administradores usan este dato para calcular el IVA y PPM mensual.</div>
             <div style={{background:"#0d1525",borderRadius:14,padding:16,marginBottom:16,border:"1px solid #8b5cf618"}}>
-              <Inp label="FECHA" type="date" value={bF.fecha} onChange={v=>setBF(f=>({...f,fecha:v}))} style={{colorScheme:"dark"}}/>
+              <Inp label="FECHA" type="date" value={bF.fecha} onChange={v=>setBF(f=>({...f,fecha:v}))}/>
               <Inp label="TOTAL BOLETAS ($)" money value={bF.monto} onChange={v=>setBF(f=>({...f,monto:v}))}/>
               {sesion.turno&&<div style={{background:"#8b5cf612",borderRadius:8,padding:"7px 12px",fontSize:11,color:"#a78bfa",marginBottom:12}}>Turno: {sesion.turno}</div>}
               {bF.monto>0&&(()=>{
