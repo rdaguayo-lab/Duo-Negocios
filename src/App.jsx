@@ -1,4 +1,4 @@
-// DUO Control de Negocios v2.8
+// DUO Control de Negocios v2.9 — formato cifras, textos blancos, Mi Caja separado, cigarros sin duplicado, Caja Vecina mejorada, chat eliminar, gastos sucursal/admin separados, reporte con períodos, tab Pagos
 // FAVICON: agregar en public/index.html: <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'><rect width='120' height='120' rx='28' fill='%231a1a2e'/><rect x='18' y='38' width='38' height='44' rx='8' fill='none' stroke='%23ffffff' stroke-width='3'/><rect x='64' y='38' width='38' height='44' rx='8' fill='none' stroke='%236c63ff' stroke-width='3'/><text x='60' y='102' font-family='sans-serif' font-size='13' font-weight='700' fill='%23ffffff' text-anchor='middle' letter-spacing='3'>DUO</text></svg>"> — legibilidad, editar días anteriores, formato cifras, cigarros semanal/mensual/anual, gastos pagador, alertas admin, gestión claves, caja vecina
 import { useState, useMemo, useEffect } from "react";
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from "recharts";
@@ -459,7 +459,10 @@ function ChatDuenos({sesion,data,guardar}){
           const col=esMio?"#f97316":"#a78bfa";
           return(
             <div key={m.id} style={{display:"flex",flexDirection:"column",alignItems:esMio?"flex-end":"flex-start",marginBottom:12}}>
-              <div style={{fontSize:10,color:"#ffffff30",marginBottom:3,display:"flex",gap:6}}><span>👑 {m.nombre}</span><span>{m.hora}</span></div>
+              <div style={{fontSize:10,color:"#ffffff30",marginBottom:3,display:"flex",gap:6,alignItems:"center"}}>
+                <span>👑 {m.nombre}</span><span>{m.hora}</span>
+                <button onClick={()=>guardar({...data,chatDuenos:(data.chatDuenos||[]).filter(x=>x.id!==m.id)})} style={{background:"#ef444420",border:"none",color:"#f8717188",width:18,height:18,borderRadius:5,cursor:"pointer",fontSize:10,display:"flex",alignItems:"center",justifyContent:"center",marginLeft:4}}>✕</button>
+              </div>
               <div style={{maxWidth:"85%",background:col+"22",border:`1px solid ${col}40`,borderRadius:esMio?"14px 14px 4px 14px":"14px 14px 14px 4px",padding:"10px 14px"}}>
                 <div style={{fontSize:13,color:"#f0ece8",lineHeight:1.5}}>{m.texto}</div>
               </div>
@@ -1212,7 +1215,7 @@ function PanelTUU({data,mes,setMes,guardar}){
 
             {/* Cálculo esperado */}
             <div style={{background:"#ffffff05",borderRadius:12,padding:14,marginBottom:12}}>
-              <div style={{fontSize:10,color:"#ffffff44",letterSpacing:2,marginBottom:8}}>LO QUE TUU DEBERÍA DEPOSITAR</div>
+              <div style={{fontSize:11,color:"#ffffffcc",letterSpacing:2,fontWeight:700,marginBottom:8}}>LO QUE TUU DEBERÍA DEPOSITAR</div>
               <div style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:"1px solid #ffffff07"}}>
                 <span style={{fontSize:12,color:"#ffffff66"}}>💳 Ventas con tarjeta</span>
                 <span style={{fontSize:13,fontWeight:700,color:"#60a5fa"}}>{fmt(tuu.tarjeta)}</span>
@@ -1229,7 +1232,7 @@ function PanelTUU({data,mes,setMes,guardar}){
 
             {/* Depósitos recibidos */}
             <div style={{marginBottom:12}}>
-              <div style={{fontSize:10,color:"#ffffff44",letterSpacing:2,marginBottom:8}}>DEPÓSITOS RECIBIDOS DE TUU</div>
+              <div style={{fontSize:11,color:"#ffffffcc",letterSpacing:2,fontWeight:700,marginBottom:8}}>DEPÓSITOS RECIBIDOS DE TUU</div>
               {deps.length===0?(
                 <div style={{textAlign:"center",padding:"14px",color:"#ffffff25",fontSize:11}}>Sin depósitos registrados este mes</div>
               ):deps.map(d=>(
@@ -1801,8 +1804,8 @@ function VistaDueno({sesion,data,guardar,onSalir}){
   const chatNuevos=(data.chatDuenos||[]).filter(m=>m.de!==sesion.id).length;
 
   const PERIODOS=[{k:"dia",l:"Hoy"},{k:"semana",l:"Semana"},{k:"mes",l:"Mes"},{k:"año",l:"Año"},{k:"custom",l:"Rango"}];
-  const TABS=[["resumen","📊 Resumen"],["reporte","📋 Reporte"],["iva","🧾 IVA/PPM"],["tuu","💳 TUU"],["informes","📄 Informes"],["graficos","📈 Gráficos"],["gastos","💼 Gastos"],["trabajadores","👥 RRHH"],["mensajes","💬 Equipo"],["chat","🔒 Chat"],["notas","📝 Notas"],["notificar","📬 Notificar"],["carahue","🌿 Carahue"],["temuco","🏙️ Temuco"],["caja_vecina","🏦 Caja Vecina"],["usuarios","👤 Usuarios"]];
-  const SIN_FILTRO=["reporte","iva","tuu","informes","gastos","trabajadores","mensajes","chat","notas","notificar"];
+  const TABS=[["resumen","📊 Resumen"],["reporte","📋 Reporte"],["iva","🧾 IVA/PPM"],["tuu","💳 TUU"],["informes","📄 Informes"],["graficos","📈 Gráficos"],["gastos","💼 Gastos"],["trabajadores","👥 RRHH"],["mensajes","💬 Equipo"],["chat","🔒 Chat"],["notas","📝 Notas"],["notificar","📬 Notificar"],["carahue","🌿 Carahue"],["temuco","🏙️ Temuco"],["caja_vecina","🏦 Caja Vecina"],["usuarios","👤 Usuarios"],["pagos","💸 Pagos"]];
+  const SIN_FILTRO=["reporte","iva","tuu","informes","gastos","trabajadores","mensajes","chat","notas","notificar","caja_vecina","usuarios","pagos"];
 
   const setFB=(suc,id,v)=>guardar({...data,fijosBase:{...data.fijosBase,[suc]:{...(data.fijosBase?.[suc]||{}),[id]:parseFloat(v)||0}}});
   const setFO=(mk,suc,id,v)=>{const o=JSON.parse(JSON.stringify(data.fijosOv||{}));if(!o[mk])o[mk]={};if(!o[mk][suc])o[mk][suc]={};o[mk][suc][id]=parseFloat(v)||0;guardar({...data,fijosOv:o});};
@@ -1839,6 +1842,18 @@ function VistaDueno({sesion,data,guardar,onSalir}){
         </div>
       </div>
 
+      {/* Alerta pagos pendientes */}
+      {(()=>{
+        const pend=[];
+        ["carahue","temuco"].forEach(s=>{(data[s]?.gastos||[]).filter(g=>g.pagadoPor==="admin"&&!g.pagado).forEach(g=>pend.push(g));});
+        if(!pend.length)return null;
+        return(
+          <div onClick={()=>setTab("pagos")} style={{background:"#fbbf2412",borderLeft:"4px solid #fbbf24",padding:"10px 16px",display:"flex",justifyContent:"space-between",alignItems:"center",cursor:"pointer",userSelect:"none"}}>
+            <div style={{fontSize:12,fontWeight:700,color:"#fbbf24"}}>⚠️ {pend.length} pago(s) pendiente(s) de validar</div>
+            <span style={{fontSize:11,color:"#fbbf24",fontWeight:700}}>Ver en Pagos →</span>
+          </div>
+        );
+      })()}
       <div style={{padding:16,maxWidth:860,margin:"0 auto"}}>
         {!SIN_FILTRO.includes(tab)&&(
           <div style={{display:"flex",gap:6,marginBottom:16,flexWrap:"wrap"}}>
@@ -1958,6 +1973,9 @@ function VistaDueno({sesion,data,guardar,onSalir}){
 
         {tab==="reporte"&&(
           <div>
+            <div style={{background:"#f9731610",border:"1px solid #f9731620",borderRadius:10,padding:"10px 14px",marginBottom:14,fontSize:11,color:"#fb923c"}}>
+              📋 El reporte mensual incluye sueldos, IVA, PPM y todos los gastos fijos/variables.
+            </div>
             <div style={{marginBottom:16}}><Lbl>MES</Lbl><input type="month" value={mes} onChange={e=>setMes(e.target.value)} style={{...IS,maxWidth:220}}/></div>
             <Kpi valor={rc.utilReal+rt.utilReal} label="UTILIDAD REAL TOTAL" sub={`Después de TODOS los gastos + IVA/PPM · ${lblMes(mes)}`}/>
             {[{suc:"carahue",r:rc},{suc:"temuco",r:rt}].map(({suc,r})=>{
@@ -2021,6 +2039,7 @@ function VistaDueno({sesion,data,guardar,onSalir}){
         {(tab==="carahue"||tab==="temuco")&&<DetalleSuc suc={tab} data={data} periodo={periodo} c1={c1} c2={c2}/>}
         {tab==="caja_vecina"&&<PanelCajaVecina data={data} guardar={guardar}/>}
         {tab==="usuarios"&&<PanelUsuarios data={data} guardar={guardar}/>}
+        {tab==="pagos"&&<PanelPagos sesion={sesion} data={data} guardar={guardar}/>}
       </div>
     </div>
   );
@@ -2044,7 +2063,7 @@ function PanelUsuarios({data,guardar}){
   return(
     <div>
       {msg&&<div style={{background:msg.includes("✅")?"#22c55e20":"#ef444420",border:"1px solid #22c55e40",borderRadius:10,padding:"10px 14px",marginBottom:14,fontSize:13,color:"#4ade80"}}>{msg}</div>}
-      <div style={{fontSize:10,color:"#ffffff33",letterSpacing:2,marginBottom:12}}>👤 USUARIOS Y CLAVES</div>
+      <div style={{fontSize:11,color:"#ffffffcc",letterSpacing:2,fontWeight:700,marginBottom:12}}>👤 USUARIOS Y CLAVES</div>
       {USUARIOS.map(u=>(
         <div key={u.id} style={{background:"#0d1525",borderRadius:12,padding:"13px 15px",marginBottom:10,border:"1px solid #ffffff08"}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:editando===u.id?12:0}}>
@@ -2094,9 +2113,10 @@ function PanelCajaVecina({data,guardar}){
   };
   const movFilt=filtrar(mov);
   const totalGiros=movFilt.filter(x=>x.tipo==="giro").reduce((s,x)=>s+x.monto,0);
-  const totalRetiros=movFilt.filter(x=>x.tipo==="retiro").reduce((s,x)=>s+x.monto,0);
-  const saldoCuenta=(cv.linea||0)-totalGiros+totalRetiros;
-  const saldoCasa=totalGiros-totalRetiros;
+  const totalDepositos=movFilt.filter(x=>x.tipo==="retiro").reduce((s,x)=>s+x.monto,0);
+  // Línea de crédito: giro = saco plata (descuenta disponible), depósito = devuelvo plata (suma disponible)
+  const saldoCuenta=(cv.linea||0)-totalGiros+totalDepositos;
+  const saldoCasa=totalGiros-totalDepositos;
   const guardarMov=()=>{
     const montoN=parseFloat(String(form.monto).replace(/\./g,""))||0;
     if(!montoN)return;
@@ -2127,13 +2147,13 @@ function PanelCajaVecina({data,guardar}){
         )}
       </div>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:14}}>
-        <div style={{background:"#22c55e10",border:"1px solid #22c55e20",borderRadius:12,padding:"12px",textAlign:"center"}}><div style={{fontSize:9,color:"#4ade8066",marginBottom:4}}>SALDO CUENTA</div><div style={{fontSize:18,fontWeight:900,color:saldoCuenta>=0?"#4ade80":"#f87171"}}>{fmt(saldoCuenta)}</div></div>
-        <div style={{background:"#fbbf2410",border:"1px solid #fbbf2420",borderRadius:12,padding:"12px",textAlign:"center"}}><div style={{fontSize:9,color:"#fbbf2466",marginBottom:4}}>DINERO EN CASA</div><div style={{fontSize:18,fontWeight:900,color:"#fbbf24"}}>{fmt(saldoCasa)}</div></div>
+        <div style={{background:"#22c55e10",border:"1px solid #22c55e20",borderRadius:12,padding:"12px",textAlign:"center"}}><div style={{fontSize:9,color:"#4ade8066",marginBottom:4}}>DISPONIBLE EN LÍNEA</div><div style={{fontSize:18,fontWeight:900,color:saldoCuenta>=0?"#4ade80":"#f87171"}}>{fmt(saldoCuenta)}</div></div>
+        <div style={{background:"#fbbf2410",border:"1px solid #fbbf2420",borderRadius:12,padding:"12px",textAlign:"center"}}><div style={{fontSize:9,color:"#fbbf2466",marginBottom:4}}>PLATA EN CAJA</div><div style={{fontSize:18,fontWeight:900,color:"#fbbf24"}}>{fmt(saldoCasa)}</div></div>
       </div>
       <div style={{background:"#0d1525",borderRadius:14,padding:"14px",marginBottom:14,border:"1px solid #ffffff08"}}>
-        <div style={{fontSize:10,color:"#ffffff44",letterSpacing:2,marginBottom:10}}>REGISTRAR</div>
+        <div style={{fontSize:11,color:"#ffffffcc",letterSpacing:2,fontWeight:700,marginBottom:10}}>REGISTRAR</div>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:10}}>
-          {[["giro","💸 Giro"],["retiro","🏠 Retiro"]].map(([v,l])=>(<button key={v} onClick={()=>setForm(f=>({...f,tipo:v}))} style={{padding:"8px",borderRadius:9,border:"1px solid",borderColor:form.tipo===v?"#fbbf24":"#ffffff12",background:form.tipo===v?"#fbbf2415":"transparent",color:form.tipo===v?"#fbbf24":"#ffffffcc",fontWeight:700,fontSize:12,fontWeight:700,cursor:"pointer"}}>{l}</button>))}
+          {[["giro","💸 Giro (sale de cuenta)"],["retiro","📥 Depósito (entra a cuenta)"]].map(([v,l])=>(<button key={v} onClick={()=>setForm(f=>({...f,tipo:v}))} style={{padding:"8px",borderRadius:9,border:"1px solid",borderColor:form.tipo===v?"#fbbf24":"#ffffff12",background:form.tipo===v?"#fbbf2415":"transparent",color:form.tipo===v?"#fbbf24":"#ffffffcc",fontWeight:700,fontSize:12,fontWeight:700,cursor:"pointer"}}>{l}</button>))}
         </div>
         <Inp label="FECHA" type="date" value={form.fecha} onChange={v=>setForm(f=>({...f,fecha:v}))}/>
         <Inp label="MONTO ($)" money value={form.monto} onChange={v=>setForm(f=>({...f,monto:v}))}/>
@@ -2151,7 +2171,7 @@ function PanelCajaVecina({data,guardar}){
       {movFilt.length===0?<Empty text="Sin movimientos"/>:movFilt.map(m=>(
         <div key={m.id} style={{background:"#0d1525",borderRadius:11,padding:"11px 13px",marginBottom:7,border:`1px solid ${m.tipo==="giro"?"#f8717112":"#22c55e12"}`}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-            <div><div style={{fontSize:12,fontWeight:700,color:m.tipo==="giro"?"#f87171":"#4ade80",marginBottom:2}}>{m.tipo==="giro"?"💸 Giro":"🏠 Retiro"} · {m.fecha}</div>{m.descripcion&&<div style={{fontSize:11,color:"#ffffff44"}}>{m.descripcion}</div>}</div>
+            <div><div style={{fontSize:12,fontWeight:700,color:m.tipo==="giro"?"#f87171":"#4ade80",marginBottom:2}}>{m.tipo==="giro"?"💸 Giro":"📥 Depósito"} · {m.fecha}</div>{m.descripcion&&<div style={{fontSize:11,color:"#ffffff44"}}>{m.descripcion}</div>}</div>
             <div style={{display:"flex",gap:6,alignItems:"center"}}>
               <span style={{fontSize:14,fontWeight:900,color:m.tipo==="giro"?"#f87171":"#4ade80"}}>{fmt(m.monto)}</span>
               <button onClick={()=>{setEditId(m.id);setForm({fecha:m.fecha,tipo:m.tipo,monto:m.monto.toLocaleString("es-CL"),descripcion:m.descripcion||""});}} style={{background:"#3b82f620",border:"none",color:"#60a5fa",width:28,height:28,borderRadius:8,cursor:"pointer",fontSize:12}}>✏️</button>
@@ -2196,6 +2216,92 @@ function CigarrosStats({sd}){
         <div style={{background:util>=0?"#fbbf2410":"#ef444410",borderRadius:10,padding:"10px 8px",textAlign:"center"}}><div style={{fontSize:9,color:util>=0?"#fbbf2466":"#f8717166",marginBottom:3}}>UTILIDAD</div><div style={{fontSize:13,fontWeight:900,color:util>=0?"#fbbf24":"#f87171"}}>{fmt(util)}</div></div>
       </div>
       <div style={{fontSize:10,color:"#ffffff22",marginTop:6,textAlign:"center"}}>{desde} → {hasta}</div>
+    </div>
+  );
+}
+
+
+// ── PANEL PAGOS ADMIN ──
+function PanelPagos({sesion,data,guardar}){
+  const gastosPend=useMemo(()=>{
+    const todos=[];
+    ["carahue","temuco"].forEach(suc=>{
+      (data[suc]?.gastos||[]).filter(g=>g.pagadoPor==="admin"&&!g.pagado).forEach(g=>todos.push({...g,suc}));
+    });
+    return todos.sort((a,b)=>(a.fechaRegistro||a.fecha).localeCompare(b.fechaRegistro||b.fecha));
+  },[data]);
+
+  const gastosValidados=useMemo(()=>{
+    const todos=[];
+    ["carahue","temuco"].forEach(suc=>{
+      (data[suc]?.gastos||[]).filter(g=>g.pagadoPor==="admin"&&g.pagado).forEach(g=>todos.push({...g,suc}));
+    });
+    return todos.sort((a,b)=>(b.fechaContable||b.fecha).localeCompare(a.fechaContable||a.fecha)).slice(0,20);
+  },[data]);
+
+  const validar=(g)=>{
+    const nd=JSON.parse(JSON.stringify(data));
+    nd[g.suc].gastos=nd[g.suc].gastos.map(x=>x.id===g.id?{...x,pagado:true,fechaContable:hoy(),validadoPor:sesion.nombre,validadoEl:hoy()}:x);
+    if(nd.mensajes)nd.mensajes=nd.mensajes.map(m=>m.gastoId===g.id?{...m,leido:true,validado:true}:m);
+    guardar(nd);
+  };
+
+  return(
+    <div>
+      {/* Alertas pendientes */}
+      {gastosPend.length>0&&(
+        <div style={{background:"#fbbf2412",border:"1px solid #fbbf2430",borderRadius:12,padding:"12px 14px",marginBottom:16}}>
+          <div style={{fontSize:13,fontWeight:800,color:"#fbbf24",marginBottom:12}}>⏳ PENDIENTES DE PAGO ({gastosPend.length})</div>
+          {gastosPend.map(g=>(
+            <div key={g.id} style={{background:"#0d1525",borderRadius:11,padding:"12px 14px",marginBottom:8,border:"1px solid #fbbf2425"}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:8}}>
+                <div style={{flex:1}}>
+                  <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:4}}>
+                    <span style={{fontSize:11,background:"#22c55e15",color:"#4ade80",padding:"2px 7px",borderRadius:5,fontWeight:700}}>{g.suc==="carahue"?"🌿 Carahue":"🏙️ Temuco"}</span>
+                    <Tag label={CAT_GASTO.find(c=>c.id===g.categoria)?.label||g.categoria} color="#f87171"/>
+                    {g.adminPaga&&<span style={{fontSize:10,color:"#fbbf24",fontWeight:600}}>→ {g.adminPaga}</span>}
+                  </div>
+                  <div style={{fontSize:13,fontWeight:700,color:"#f0ece8",marginBottom:3}}>{g.proveedor||g.tienda||g.descripcion||"Sin detalle"}</div>
+                  <div style={{fontSize:11,color:"#ffffff55"}}>Registrado: {g.fechaRegistro||g.fecha}</div>
+                  {g.factura&&<div style={{fontSize:10,color:"#ffffff33"}}>Factura #{g.factura}</div>}
+                </div>
+                <div style={{display:"flex",flexDirection:"column",gap:6,alignItems:"flex-end"}}>
+                  <div style={{fontSize:16,fontWeight:900,color:"#f87171"}}>{fmt(g.monto)}</div>
+                  <button onClick={()=>validar(g)} style={{background:"#22c55e20",border:"1px solid #22c55e50",color:"#4ade80",padding:"7px 16px",borderRadius:9,cursor:"pointer",fontSize:12,fontWeight:800,whiteSpace:"nowrap"}}>✅ Pagar</button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+      {gastosPend.length===0&&(
+        <div style={{background:"#22c55e10",border:"1px solid #22c55e20",borderRadius:12,padding:"14px",marginBottom:16,textAlign:"center"}}>
+          <div style={{fontSize:16,marginBottom:4}}>✅</div>
+          <div style={{fontSize:13,fontWeight:700,color:"#4ade80"}}>Sin pagos pendientes</div>
+        </div>
+      )}
+      {/* Historial pagados */}
+      {gastosValidados.length>0&&(
+        <div>
+          <div style={{fontSize:11,color:"#ffffffcc",letterSpacing:2,marginBottom:10,fontWeight:700}}>✅ ÚLTIMOS PAGOS REALIZADOS</div>
+          {gastosValidados.map(g=>(
+            <div key={g.id} style={{background:"#0d1525",borderRadius:10,padding:"11px 13px",marginBottom:6,border:"1px solid #22c55e12"}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <div>
+                  <div style={{display:"flex",gap:5,flexWrap:"wrap",marginBottom:3}}>
+                    <span style={{fontSize:10,background:"#22c55e15",color:"#4ade80",padding:"1px 6px",borderRadius:4,fontWeight:700}}>{g.suc}</span>
+                    <Tag label={CAT_GASTO.find(c=>c.id===g.categoria)?.label||g.categoria} color="#f87171"/>
+                    <span style={{fontSize:10,color:"#ffffff44"}}>{g.fechaContable}</span>
+                  </div>
+                  <div style={{fontSize:12,fontWeight:600,color:"#f0ece8"}}>{g.proveedor||g.tienda||g.descripcion||"—"}</div>
+                  <div style={{fontSize:10,color:"#4ade80"}}>Validado por: {g.validadoPor}</div>
+                </div>
+                <div style={{fontSize:14,fontWeight:900,color:"#4ade80"}}>{fmt(g.monto)}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -2299,7 +2405,7 @@ function VistaVendedora({sesion,data,guardar,onSalir}){
   };
 
   const vHoy=vs.filter(v=>v.fecha===hoy()&&(!sesion.turno||v.turno===sesion.turno));
-  const gHoy=gs.filter(g=>g.fecha===hoy());
+  const gHoy=gs.filter(g=>g.fecha===hoy()&&g.pagado!==false);
   const cvHoy=cigV.filter(v=>v.fecha===hoy());
   const cgHoy=cigG.filter(g=>g.fecha===hoy());
   const bHoy=bols.filter(b=>b.fecha===hoy());
@@ -2336,7 +2442,16 @@ function VistaVendedora({sesion,data,guardar,onSalir}){
             <div style={{background:"#0d1525",borderRadius:16,padding:18,border:`1px solid ${info.color}0e`}}>
               <div style={{fontSize:11,fontWeight:700,color:"#ffffff28",marginBottom:12}}>TURNO HOY</div>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
-                {[{l:"Ventas",n:vHoy.length,c:info.color},{l:"Gastos",n:gHoy.length,c:"#f87171"},{l:"V.Cigarros",n:cvHoy.length,c:"#fbbf24"},{l:"C.Cigarros",n:cgHoy.length,c:"#fb923c"}].map(x=>(<div key={x.l} style={{background:"#ffffff05",borderRadius:10,padding:"10px 12px"}}><div style={{fontSize:9,color:"#ffffff25"}}>{x.l}</div><div style={{fontSize:22,fontWeight:900,color:x.c}}>{x.n}</div></div>))}
+                {(()=>{
+                const gSucHoy=gHoy.filter(g=>g.pagadoPor!=="admin");
+                const gAdmHoy=gHoy.filter(g=>g.pagadoPor==="admin");
+                return[
+                  {l:"Ventas",n:vHoy.length,c:info.color},
+                  {l:"G.Sucursal",n:gSucHoy.length,c:"#f87171"},
+                  {l:"G.Admin",n:gAdmHoy.length,c:"#fbbf24"},
+                  {l:"Cigarros",n:cvHoy.length,c:"#fb923c"},
+                ].map(x=>(<div key={x.l} style={{background:"#ffffff05",borderRadius:10,padding:"10px 8px",textAlign:"center"}}><div style={{fontSize:9,color:"#ffffff55",marginBottom:2}}>{x.l}</div><div style={{fontSize:20,fontWeight:900,color:x.c}}>{x.n}</div></div>));
+              })()}
               </div>
               <div style={{marginTop:10,fontSize:10,color:"#ffffff18",textAlign:"center"}}>💡 Solo los administradores pueden ver montos y utilidades</div>
             </div>
@@ -2346,10 +2461,10 @@ function VistaVendedora({sesion,data,guardar,onSalir}){
         {tab==="historial"&&(
           <div>
             <div style={{background:"#0d1525",borderRadius:12,padding:"12px 14px",marginBottom:14,border:"1px solid #ffffff10"}}>
-              <div style={{fontSize:10,color:"#ffffff44",letterSpacing:2,marginBottom:8}}>🔍 VER Y EDITAR DÍAS ANTERIORES</div>
+              <div style={{fontSize:11,color:"#ffffffcc",letterSpacing:2,fontWeight:700,marginBottom:8}}>🔍 VER Y EDITAR DÍAS ANTERIORES</div>
               <input type="date" value={diaHist} onChange={e=>setDiaHist(e.target.value)} style={{...IS,marginBottom:0}} max={hoy()}/>
               {diaHist&&diaHist!==hoy()&&<>
-                <div style={{fontSize:10,color:"#ffffff44",letterSpacing:2,margin:"12px 0 8px"}}>💰 VENTAS DEL {diaHist}</div>
+                <div style={{fontSize:11,color:"#ffffffcc",letterSpacing:2,fontWeight:700,margin:"12px 0 8px"}}>💰 VENTAS DEL {diaHist}</div>
                 {vsHist.length===0?<div style={{fontSize:12,color:"#ffffff33",textAlign:"center",padding:"12px 0"}}>Sin registros</div>:vsHist.map(v=>(
                   <div key={v.id} style={{background:"#111827",borderRadius:10,padding:"10px 12px",marginBottom:6,border:"1px solid #22c55e12"}}>
                     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
@@ -2368,7 +2483,7 @@ function VistaVendedora({sesion,data,guardar,onSalir}){
               </>}
             </div>
             {vHoy.length>0&&<>
-              <div style={{fontSize:10,color:"#ffffff22",letterSpacing:2,margin:"14px 0 8px"}}>💰 VENTAS HOY {sesion.turno?`— ${sesion.turno}`:""}</div>
+              <div style={{fontSize:11,color:"#ffffffcc",letterSpacing:2,fontWeight:700,margin:"14px 0 8px"}}>💰 VENTAS HOY {sesion.turno?`— ${sesion.turno}`:""}</div>
               {vHoy.map(v=>(
                 <div key={v.id} style={{background:"#0d1525",borderRadius:10,padding:"11px 13px",marginBottom:7,border:"1px solid #22c55e0c"}}>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
@@ -2390,7 +2505,7 @@ function VistaVendedora({sesion,data,guardar,onSalir}){
               ))}
             </>}
             {gHoy.length>0&&<>
-              <div style={{fontSize:10,color:"#ffffff22",letterSpacing:2,margin:"14px 0 8px"}}>📉 GASTOS HOY</div>
+              <div style={{fontSize:11,color:"#ffffffcc",letterSpacing:2,fontWeight:700,margin:"14px 0 8px"}}>📉 GASTOS HOY</div>
               {gHoy.map(g=>(
                 <div key={g.id} style={{background:"#0d1525",borderRadius:10,padding:"11px 13px",marginBottom:7,border:"1px solid #ef44440c"}}>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
@@ -2418,27 +2533,31 @@ function VistaVendedora({sesion,data,guardar,onSalir}){
         {tab==="caja"&&(()=>{
           const PERS=[["dia","Hoy"],["semana","Semana"],["mes","Mes"],["año","Año"],["custom","Rango"]];
           const vP=filtroPer(vs,perCaja,cajaDe,cajaHa);
-          const gP2=filtroPer(gs,perCaja,cajaDe,cajaHa);
+          const gP2=filtroPer(gs.filter(g=>g.pagado!==false),perCaja,cajaDe,cajaHa);
+          const gSuc=gP2.filter(g=>g.pagadoPor!=="admin");
+          const gAdm=gP2.filter(g=>g.pagadoPor==="admin");
           const cvP=filtroPer(sd.cigarros?.ventas||[],perCaja,cajaDe,cajaHa);
           const cgP=filtroPer(sd.cigarros?.gastos||[],perCaja,cajaDe,cajaHa);
           const tvP=vP.reduce((s,x)=>s+x.monto,0);
-          const tgP=gP2.reduce((s,x)=>s+x.monto,0);
+          const tgSuc=gSuc.reduce((s,x)=>s+x.monto,0);
+          const tgAdm=gAdm.reduce((s,x)=>s+x.monto,0);
+          const tgP=tgSuc+tgAdm;
           const tcvP=cvP.reduce((s,x)=>s+x.monto,0);
           const tcgP=cgP.reduce((s,x)=>s+x.monto,0);
           const efP=vP.filter(x=>x.tipo==="efectivo").reduce((s,x)=>s+x.monto,0);
           const tarP=vP.filter(x=>x.tipo==="tarjeta").reduce((s,x)=>s+x.monto,0);
           const transP=vP.filter(x=>x.tipo==="transferencia").reduce((s,x)=>s+x.monto,0);
           const comTarP=Math.round(tarP*(data.comision?.[suc]||0)/100);
-          const utilP=tvP+tcvP-tgP-tcgP-comTarP;
+          const utilP=tvP-tgP-comTarP;
+          const utilCig=tcvP-tcgP;
           return(
             <div>
               <div style={{background:"#fbbf2410",border:"1px solid #fbbf2420",borderRadius:12,padding:"10px 14px",marginBottom:14,fontSize:11,color:"#fbbf24"}}>
-                💡 Usa esta pestaña para cuadrar el dinero físico de caja con los registros del sistema.
+                💡 Solo se incluyen gastos validados. Los gastos de administración pendientes no se contabilizan hasta que el admin los valide.
               </div>
-              {/* Selector período */}
               <div style={{display:"flex",gap:6,marginBottom:perCaja==="custom"?8:16,flexWrap:"wrap"}}>
                 {PERS.map(([k,l])=>(
-                  <button key={k} onClick={()=>setPerCaja(k)} style={{flex:1,minWidth:50,padding:"8px 4px",borderRadius:9,border:`1px solid ${perCaja===k?info.color:"#ffffff12"}`,background:perCaja===k?info.color+"20":"transparent",color:perCaja===k?info.color:"#ffffffcc",fontWeight:700,fontWeight:700,fontSize:11,cursor:"pointer"}}>{l}</button>
+                  <button key={k} onClick={()=>setPerCaja(k)} style={{flex:1,minWidth:50,padding:"8px 4px",borderRadius:9,border:`1px solid ${perCaja===k?info.color:"#ffffff12"}`,background:perCaja===k?info.color+"20":"transparent",color:perCaja===k?info.color:"#ffffffcc",fontWeight:700,fontSize:11,cursor:"pointer"}}>{l}</button>
                 ))}
               </div>
               {perCaja==="custom"&&(
@@ -2447,49 +2566,71 @@ function VistaVendedora({sesion,data,guardar,onSalir}){
                   <div><Lbl>HASTA</Lbl><input type="date" value={cajaHa} onChange={e=>setCajaHa(e.target.value)} style={{...IS,fontSize:12}}/></div>
                 </div>
               )}
-              {/* Resumen */}
-              <div style={{background:"#0d1525",borderRadius:14,padding:16,marginBottom:14,border:`1px solid ${info.color}18`}}>
-                <div style={{fontSize:10,color:"#ffffff44",letterSpacing:2,marginBottom:12}}>📊 RESUMEN {PERS.find(p=>p[0]===perCaja)?.[1]?.toUpperCase()}</div>
-                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:12}}>
-                  <div style={{background:"#4ade8010",borderRadius:10,padding:"12px",textAlign:"center"}}>
-                    <div style={{fontSize:9,color:"#4ade8066",marginBottom:4}}>💰 Total Ventas</div>
-                    <div style={{fontSize:18,fontWeight:900,color:"#4ade80"}}>{fmt(tvP)}</div>
-                  </div>
-                  <div style={{background:"#f8717110",borderRadius:10,padding:"12px",textAlign:"center"}}>
-                    <div style={{fontSize:9,color:"#f8717166",marginBottom:4}}>📉 Total Gastos</div>
-                    <div style={{fontSize:18,fontWeight:900,color:"#f87171"}}>{fmt(tgP)}</div>
-                  </div>
-                </div>
-                {/* Desglose ventas */}
-                <div style={{marginBottom:10}}>
-                  <div style={{fontSize:10,color:"#ffffff33",marginBottom:6}}>Desglose ventas:</div>
-                  {[{l:"💵 Efectivo en caja",v:efP,c:"#4ade80"},{l:"💳 Tarjeta",v:tarP,c:"#60a5fa"},{l:"🏦 Transferencia",v:transP,c:"#a78bfa"}].map(x=>(
-                    x.v>0&&<div key={x.l} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid #ffffff07"}}>
-                      <span style={{fontSize:11,color:"#ffffff55"}}>{x.l}</span>
-                      <span style={{fontSize:12,fontWeight:700,color:x.c}}>{fmt(x.v)}</span>
+              {/* RESUMEN VENTAS */}
+              <div style={{background:"#0d1525",borderRadius:14,padding:14,marginBottom:12,border:`1px solid ${info.color}18`}}>
+                <div style={{fontSize:11,color:"#ffffffcc",letterSpacing:2,marginBottom:10,fontWeight:800}}>💰 VENTAS NORMALES</div>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:10}}>
+                  {[{l:"💵 Efectivo",v:efP,c:"#4ade80"},{l:"💳 Tarjeta",v:tarP,c:"#60a5fa"},{l:"🏦 Transfer.",v:transP,c:"#a78bfa"}].map(x=>(
+                    <div key={x.l} style={{background:x.c+"10",borderRadius:10,padding:"10px 8px",textAlign:"center"}}>
+                      <div style={{fontSize:9,color:x.c+"88",marginBottom:3}}>{x.l}</div>
+                      <div style={{fontSize:13,fontWeight:900,color:x.c}}>{fmt(x.v)}</div>
                     </div>
                   ))}
-                  {comTarP>0&&<div style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid #ffffff07"}}>
-                    <span style={{fontSize:11,color:"#f8717188"}}>↳ Comisión tarjeta</span>
-                    <span style={{fontSize:12,fontWeight:700,color:"#f87171"}}>−{fmt(comTarP)}</span>
-                  </div>}
-                  {tcvP>0&&<div style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid #ffffff07"}}>
-                    <span style={{fontSize:11,color:"#fbbf2488"}}>🚬 Cigarros</span>
-                    <span style={{fontSize:12,fontWeight:700,color:"#fbbf24"}}>{fmt(tcvP-tcgP)}</span>
-                  </div>}
                 </div>
-                {/* Resultado */}
-                <div style={{background:utilP>=0?"#4ade8012":"#f8717112",border:`1px solid ${utilP>=0?"#4ade8025":"#f8717125"}`,borderRadius:10,padding:"10px 14px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                  <div>
-                    <div style={{fontSize:12,fontWeight:700,color:utilP>=0?"#4ade80":"#f87171"}}>Utilidad operacional</div>
-                    <div style={{fontSize:10,color:"#ffffff44"}}>Dinero que debería quedar en caja</div>
-                  </div>
-                  <div style={{fontSize:20,fontWeight:900,color:utilP>=0?"#4ade80":"#f87171"}}>{fmt(utilP)}</div>
+                <div style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderTop:"1px solid #ffffff0a"}}>
+                  <span style={{fontSize:12,fontWeight:700,color:"#ffffffcc"}}>Total ventas</span>
+                  <span style={{fontSize:14,fontWeight:900,color:"#4ade80"}}>{fmt(tvP)}</span>
+                </div>
+                {comTarP>0&&<div style={{display:"flex",justifyContent:"space-between",padding:"4px 0"}}>
+                  <span style={{fontSize:11,color:"#f8717188"}}>↳ Comisión tarjeta</span>
+                  <span style={{fontSize:12,fontWeight:700,color:"#f87171"}}>−{fmt(comTarP)}</span>
+                </div>}
+              </div>
+              {/* RESUMEN GASTOS SEPARADOS */}
+              <div style={{background:"#0d1525",borderRadius:14,padding:14,marginBottom:12,border:"1px solid #ef44440c"}}>
+                <div style={{fontSize:11,color:"#ffffffcc",letterSpacing:2,marginBottom:10,fontWeight:800}}>📉 GASTOS</div>
+                <div style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:"1px solid #ffffff08"}}>
+                  <span style={{fontSize:11,color:"#ffffff88"}}>💵 Caja sucursal</span>
+                  <span style={{fontSize:13,fontWeight:800,color:"#f87171"}}>{fmt(tgSuc)}</span>
+                </div>
+                <div style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:"1px solid #ffffff08"}}>
+                  <span style={{fontSize:11,color:"#ffffff88"}}>👤 Administración</span>
+                  <span style={{fontSize:13,fontWeight:800,color:"#f87171"}}>{fmt(tgAdm)}</span>
+                </div>
+                <div style={{display:"flex",justifyContent:"space-between",padding:"8px 0",borderTop:"1px solid #ffffff15",marginTop:4}}>
+                  <span style={{fontSize:12,fontWeight:700,color:"#ffffffcc"}}>Total gastos</span>
+                  <span style={{fontSize:14,fontWeight:900,color:"#f87171"}}>{fmt(tgP)}</span>
                 </div>
               </div>
-              {/* Detalle transacciones */}
+              {/* CIGARROS SEPARADO */}
+              <div style={{background:"#0d1525",borderRadius:14,padding:14,marginBottom:12,border:"1px solid #fbbf2418"}}>
+                <div style={{fontSize:11,color:"#ffffffcc",letterSpacing:2,marginBottom:10,fontWeight:800}}>🚬 CIGARROS (CUENTA APARTE)</div>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
+                  <div style={{background:"#4ade8010",borderRadius:10,padding:"10px 8px",textAlign:"center"}}>
+                    <div style={{fontSize:9,color:"#4ade8088",marginBottom:3}}>Ventas</div>
+                    <div style={{fontSize:13,fontWeight:900,color:"#4ade80"}}>{fmt(tcvP)}</div>
+                  </div>
+                  <div style={{background:"#f8717110",borderRadius:10,padding:"10px 8px",textAlign:"center"}}>
+                    <div style={{fontSize:9,color:"#f8717188",marginBottom:3}}>Compras</div>
+                    <div style={{fontSize:13,fontWeight:900,color:"#f87171"}}>{fmt(tcgP)}</div>
+                  </div>
+                  <div style={{background:utilCig>=0?"#fbbf2410":"#f8717110",borderRadius:10,padding:"10px 8px",textAlign:"center"}}>
+                    <div style={{fontSize:9,color:utilCig>=0?"#fbbf2488":"#f8717188",marginBottom:3}}>Utilidad</div>
+                    <div style={{fontSize:13,fontWeight:900,color:utilCig>=0?"#fbbf24":"#f87171"}}>{fmt(utilCig)}</div>
+                  </div>
+                </div>
+              </div>
+              {/* RESULTADO FINAL */}
+              <div style={{background:utilP>=0?"#4ade8012":"#f8717112",border:`1px solid ${utilP>=0?"#4ade8025":"#f8717125"}`,borderRadius:12,padding:"12px 16px",marginBottom:14,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <div>
+                  <div style={{fontSize:12,fontWeight:800,color:utilP>=0?"#4ade80":"#f87171"}}>Resultado operacional</div>
+                  <div style={{fontSize:10,color:"#ffffff44"}}>Ventas − Gastos − Comisión</div>
+                </div>
+                <div style={{fontSize:22,fontWeight:900,color:utilP>=0?"#4ade80":"#f87171"}}>{fmt(utilP)}</div>
+              </div>
+              {/* DETALLE */}
               {vP.length>0&&<>
-                <div style={{fontSize:10,color:"#ffffff22",letterSpacing:2,margin:"14px 0 8px"}}>💰 VENTAS DEL PERÍODO</div>
+                <div style={{fontSize:11,color:"#ffffffcc",letterSpacing:2,margin:"14px 0 8px",fontWeight:700}}>💰 DETALLE VENTAS</div>
                 {vP.map(v=>(
                   <div key={v.id} style={{background:"#0d1525",borderRadius:9,padding:"9px 12px",marginBottom:5,display:"flex",justifyContent:"space-between",alignItems:"center",border:"1px solid #22c55e0a"}}>
                     <div>
@@ -2503,14 +2644,14 @@ function VistaVendedora({sesion,data,guardar,onSalir}){
                   </div>
                 ))}
               </>}
-              {gP2.length>0&&<>
-                <div style={{fontSize:10,color:"#ffffff22",letterSpacing:2,margin:"14px 0 8px"}}>📉 GASTOS DEL PERÍODO</div>
-                {gP2.map(g=>(
+              {gSuc.length>0&&<>
+                <div style={{fontSize:11,color:"#ffffffcc",letterSpacing:2,margin:"14px 0 8px",fontWeight:700}}>📉 GASTOS SUCURSAL ({fmt(tgSuc)})</div>
+                {gSuc.map(g=>(
                   <div key={g.id} style={{background:"#0d1525",borderRadius:9,padding:"9px 12px",marginBottom:5,display:"flex",justifyContent:"space-between",alignItems:"center",border:"1px solid #ef44440a"}}>
                     <div>
                       <div style={{display:"flex",gap:5,marginBottom:2}}>
                         <Tag label={CAT_GASTO.find(c=>c.id===g.categoria)?.label||g.categoria} color="#f87171"/>
-                        <span style={{fontSize:10,color:"#ffffff33"}}>{g.fecha}</span>
+                        <span style={{fontSize:10,color:"#ffffff33"}}>{g.fechaContable||g.fecha}</span>
                       </div>
                       {(g.proveedor||g.tienda)&&<div style={{fontSize:10,color:"#ffffff44"}}>{g.proveedor||g.tienda}</div>}
                     </div>
@@ -2518,19 +2659,32 @@ function VistaVendedora({sesion,data,guardar,onSalir}){
                   </div>
                 ))}
               </>}
-              {vP.length===0&&gP2.length===0&&<Empty text="Sin registros en este período"/>}
+              {gAdm.length>0&&<>
+                <div style={{fontSize:11,color:"#ffffffcc",letterSpacing:2,margin:"14px 0 8px",fontWeight:700}}>👤 GASTOS ADMINISTRACIÓN ({fmt(tgAdm)})</div>
+                {gAdm.map(g=>(
+                  <div key={g.id} style={{background:"#0d1525",borderRadius:9,padding:"9px 12px",marginBottom:5,display:"flex",justifyContent:"space-between",alignItems:"center",border:"1px solid #fbbf2412"}}>
+                    <div>
+                      <div style={{display:"flex",gap:5,marginBottom:2}}>
+                        <Tag label={CAT_GASTO.find(c=>c.id===g.categoria)?.label||g.categoria} color="#fbbf24"/>
+                        <span style={{fontSize:10,color:"#ffffff33"}}>{g.fechaContable||g.fecha}</span>
+                        <span style={{fontSize:10,background:"#22c55e20",color:"#4ade80",padding:"1px 5px",borderRadius:4,fontWeight:700}}>✅ {g.validadoPor||"validado"}</span>
+                      </div>
+                      {(g.proveedor||g.tienda)&&<div style={{fontSize:10,color:"#ffffff44"}}>{g.proveedor||g.tienda}</div>}
+                    </div>
+                    <span style={{fontSize:13,fontWeight:800,color:"#fbbf24"}}>{fmt(g.monto)}</span>
+                  </div>
+                ))}
+              </>}
             </div>
           );
         })()}
 
-
-        {tab==="cigarros"&&(
+        tab==="cigarros"&&(
           <div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:14}}><QBtn icon="🚬" label="+ Venta" color="#fbbf24" onClick={()=>setModal("cigV")}/><QBtn icon="📦" label="+ Compra" color="#f87171" onClick={()=>setModal("cigG")}/></div>
             <CigarrosStats sd={sd}/>
-            <CigarrosStats data={sd} suc={suc}/>
-            {cvHoy.length>0&&<><div style={{fontSize:10,color:"#ffffff22",letterSpacing:2,marginBottom:8}}>VENTAS HOY</div>{cvHoy.map(v=>(<div key={v.id} style={{background:"#0d1525",borderRadius:10,padding:"9px 12px",marginBottom:5,display:"flex",justifyContent:"space-between",alignItems:"center"}}><div><div style={{fontSize:11}}>{v.descripcion||"Venta cigarros"}</div><div style={{fontSize:10,color:"#ffffff25"}}>{v.fecha}</div></div><div style={{display:"flex",gap:6,alignItems:"center"}}><span style={{color:"#fbbf24",fontWeight:800}}>{fmt(v.monto)}</span><button onClick={()=>{setCvF({fecha:v.fecha,monto:String(v.monto),descripcion:v.descripcion||""});dCV(v.id);setModal("cigV");}} style={{background:"#3b82f620",border:"none",color:"#60a5fa",width:26,height:26,borderRadius:8,cursor:"pointer",fontSize:12}}>✏️</button><DelBtn onClick={()=>dCV(v.id)}/></div></div>))}</>}
-            {cgHoy.length>0&&<><div style={{fontSize:10,color:"#ffffff22",letterSpacing:2,margin:"12px 0 8px"}}>COMPRAS HOY</div>{cgHoy.map(g=>(<div key={g.id} style={{background:"#0d1525",borderRadius:10,padding:"9px 12px",marginBottom:5,display:"flex",justifyContent:"space-between",alignItems:"center"}}><div><div style={{fontSize:11}}>{g.proveedor||"Compra"}</div><div style={{fontSize:10,color:"#ffffff25"}}>{g.fecha} {g.factura&&`· #${g.factura}`}</div></div><div style={{display:"flex",gap:6,alignItems:"center"}}><span style={{color:"#f87171",fontWeight:800}}>{fmt(g.monto)}</span><button onClick={()=>{setCgF({fecha:g.fecha,proveedor:g.proveedor||"",factura:g.factura||"",monto:String(g.monto),descripcion:g.descripcion||""});dCG(g.id);setModal("cigG");}} style={{background:"#3b82f620",border:"none",color:"#60a5fa",width:26,height:26,borderRadius:8,cursor:"pointer",fontSize:12}}>✏️</button><DelBtn onClick={()=>dCG(g.id)}/></div></div>))}</>}
+            {cvHoy.length>0&&<><div style={{fontSize:11,color:"#ffffffcc",letterSpacing:2,fontWeight:700,marginBottom:8}}>VENTAS HOY</div>{cvHoy.map(v=>(<div key={v.id} style={{background:"#0d1525",borderRadius:10,padding:"9px 12px",marginBottom:5,display:"flex",justifyContent:"space-between",alignItems:"center"}}><div><div style={{fontSize:11}}>{v.descripcion||"Venta cigarros"}</div><div style={{fontSize:10,color:"#ffffff25"}}>{v.fecha}</div></div><div style={{display:"flex",gap:6,alignItems:"center"}}><span style={{color:"#fbbf24",fontWeight:800}}>{fmt(v.monto)}</span><button onClick={()=>{setCvF({fecha:v.fecha,monto:String(v.monto),descripcion:v.descripcion||""});dCV(v.id);setModal("cigV");}} style={{background:"#3b82f620",border:"none",color:"#60a5fa",width:26,height:26,borderRadius:8,cursor:"pointer",fontSize:12}}>✏️</button><DelBtn onClick={()=>dCV(v.id)}/></div></div>))}</>}
+            {cgHoy.length>0&&<><div style={{fontSize:11,color:"#ffffffcc",letterSpacing:2,fontWeight:700,margin:"12px 0 8px"}}>COMPRAS HOY</div>{cgHoy.map(g=>(<div key={g.id} style={{background:"#0d1525",borderRadius:10,padding:"9px 12px",marginBottom:5,display:"flex",justifyContent:"space-between",alignItems:"center"}}><div><div style={{fontSize:11}}>{g.proveedor||"Compra"}</div><div style={{fontSize:10,color:"#ffffff25"}}>{g.fecha} {g.factura&&`· #${g.factura}`}</div></div><div style={{display:"flex",gap:6,alignItems:"center"}}><span style={{color:"#f87171",fontWeight:800}}>{fmt(g.monto)}</span><button onClick={()=>{setCgF({fecha:g.fecha,proveedor:g.proveedor||"",factura:g.factura||"",monto:String(g.monto),descripcion:g.descripcion||""});dCG(g.id);setModal("cigG");}} style={{background:"#3b82f620",border:"none",color:"#60a5fa",width:26,height:26,borderRadius:8,cursor:"pointer",fontSize:12}}>✏️</button><DelBtn onClick={()=>dCG(g.id)}/></div></div>))}</>}
             {cvHoy.length===0&&cgHoy.length===0&&<Empty text="Sin registros hoy"/>}
           </div>
         )}
@@ -2542,7 +2696,7 @@ function VistaVendedora({sesion,data,guardar,onSalir}){
             <div style={{background:"#8b5cf610",border:"1px solid #8b5cf622",borderRadius:12,padding:"12px 14px",marginBottom:16,fontSize:11,color:"#a78bfa"}}>🧾 Registra el total de boletas emitidas en tu turno. Los administradores usan este dato para calcular el IVA y PPM mensual.</div>
             <div style={{background:"#0d1525",borderRadius:14,padding:16,marginBottom:16,border:"1px solid #8b5cf618"}}>
               <Inp label="FECHA" type="date" value={bF.fecha} onChange={v=>setBF(f=>({...f,fecha:v}))}/>
-              <Inp label="TOTAL BOLETAS ($)" type="number" placeholder="Ej: 350000" value={bF.monto} onChange={v=>setBF(f=>({...f,monto:v}))}/>
+              <Inp label="TOTAL BOLETAS ($)" money value={bF.monto} onChange={v=>setBF(f=>({...f,monto:v}))}/>
               {sesion.turno&&<div style={{background:"#8b5cf612",borderRadius:8,padding:"7px 12px",fontSize:11,color:"#a78bfa",marginBottom:12}}>Turno: {sesion.turno}</div>}
               {bF.monto>0&&(()=>{
                 const bruto=+bF.monto||0;
@@ -2600,7 +2754,7 @@ function VistaVendedora({sesion,data,guardar,onSalir}){
                   <Btn onClick={()=>setModal("vacaciones")} color="#3b82f6">+ Solicitar Vacaciones</Btn>
                   {(worker.solicitudes||[]).length>0&&(
                     <div style={{marginTop:14}}>
-                      <div style={{fontSize:10,color:"#ffffff22",letterSpacing:2,marginBottom:8}}>MIS SOLICITUDES</div>
+                      <div style={{fontSize:11,color:"#ffffffcc",letterSpacing:2,fontWeight:700,marginBottom:8}}>MIS SOLICITUDES</div>
                       {[...(worker.solicitudes||[])].reverse().map(s=>(
                         <div key={s.id} style={{background:"#ffffff06",borderRadius:10,padding:"10px 12px",marginBottom:6,border:`1px solid ${s.estado==="aprobada"?"#4ade8020":s.estado==="rechazada"?"#f8717120":"#fbbf2420"}`}}>
                           <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:s.estado==="aprobada"?8:0}}>
@@ -2667,7 +2821,7 @@ function VistaVendedora({sesion,data,guardar,onSalir}){
               <div style={{fontSize:16,fontWeight:900,marginBottom:18}}>💰 Registrar Venta</div>
               <Inp label="FECHA" type="date" value={vF.fecha} onChange={v=>setVF(f=>({...f,fecha:v}))}/>
               <div style={{marginBottom:14}}><Lbl>TIPO DE PAGO</Lbl><div style={{display:"flex",gap:6,flexWrap:"wrap"}}>{TIPOS_PAGO.map(t=>(<button key={t.id} onClick={()=>setVF(f=>({...f,tipo:t.id}))} style={{flex:1,minWidth:90,padding:"9px 6px",borderRadius:10,border:`1px solid ${vF.tipo===t.id?info.color:"#ffffff12"}`,background:vF.tipo===t.id?info.color+"20":"transparent",color:vF.tipo===t.id?info.color:"#ffffffcc",fontWeight:700,fontWeight:700,fontSize:12,cursor:"pointer"}}>{t.label}</button>))}</div>{vF.tipo==="tarjeta"&&(data.comision?.[suc]||0)>0&&<div style={{fontSize:10,color:"#f8717199",marginTop:5}}>⚠️ Se descontará {data.comision[suc]}% de comisión al calcular utilidad</div>}</div>
-              <Inp label="MONTO ($)" type="number" placeholder="0" value={vF.monto} onChange={v=>setVF(f=>({...f,monto:v}))}/>
+              <Inp label="MONTO ($)" money value={vF.monto} onChange={v=>setVF(f=>({...f,monto:v}))}/>
               <Inp label="DESCRIPCIÓN (opcional)" value={vF.descripcion} onChange={v=>setVF(f=>({...f,descripcion:v}))}/>
               {sesion.turno&&<div style={{background:info.color+"12",borderRadius:8,padding:"7px 12px",fontSize:11,color:info.color,marginBottom:12}}>Turno: {sesion.turno}</div>}
               <Btn onClick={gV} color={info.color} loading={gnd}>Guardar Venta</Btn>
@@ -2681,7 +2835,7 @@ function VistaVendedora({sesion,data,guardar,onSalir}){
               </Sel>
               {catA?.req?(<div style={{marginBottom:14}}><Lbl>PROVEEDOR</Lbl><select value={gF.proveedor} onChange={e=>setGF(f=>({...f,proveedor:e.target.value}))} style={IS}><option value="">-- Seleccionar --</option>{pNrm.map(p=><option key={p.id} value={p.nombre}>{p.nombre}</option>)}</select>{pNrm.length===0&&<div style={{fontSize:10,color:"#f87171",marginTop:4}}>⚠️ Agrega proveedores primero</div>}</div>):(<Inp label="LUGAR / TIENDA" placeholder="Ej: Líder, Unimarc" value={gF.tienda} onChange={v=>setGF(f=>({...f,tienda:v}))}/>)}
               <Inp label="N° FACTURA (opcional)" value={gF.factura} onChange={v=>setGF(f=>({...f,factura:v}))}/>
-              <Inp label="MONTO ($)" type="number" placeholder="0" value={gF.monto} onChange={v=>setGF(f=>({...f,monto:v}))}/>
+              <Inp label="MONTO ($)" money value={gF.monto} onChange={v=>setGF(f=>({...f,monto:v}))}/>
               <Inp label="¿QUÉ SE COMPRÓ?" value={gF.descripcion} onChange={v=>setGF(f=>({...f,descripcion:v}))}/>
               <div style={{marginBottom:14}}>
                 <Lbl>¿CÓMO SE PAGA?</Lbl>
@@ -2706,9 +2860,9 @@ function VistaVendedora({sesion,data,guardar,onSalir}){
               <Btn onClick={gG} color="#ef4444" loading={gnd}>Guardar Gasto</Btn>
             </>}
 
-            {modal==="cigV"&&<><div style={{fontSize:16,fontWeight:900,marginBottom:18}}>🚬 Venta Cigarros</div><Inp label="FECHA" type="date" value={cvF.fecha} onChange={v=>setCvF(f=>({...f,fecha:v}))}/><Inp label="MONTO ($)" type="number" placeholder="0" value={cvF.monto} onChange={v=>setCvF(f=>({...f,monto:v}))}/><Inp label="DESCRIPCIÓN (opcional)" value={cvF.descripcion} onChange={v=>setCvF(f=>({...f,descripcion:v}))}/><Btn onClick={gCV} color="#fbbf24" loading={gnd}>Guardar</Btn></>}
+            {modal==="cigV"&&<><div style={{fontSize:16,fontWeight:900,marginBottom:18}}>🚬 Venta Cigarros</div><Inp label="FECHA" type="date" value={cvF.fecha} onChange={v=>setCvF(f=>({...f,fecha:v}))}/><Inp label="MONTO ($)" money value={cvF.monto} onChange={v=>setCvF(f=>({...f,monto:v}))}/><Inp label="DESCRIPCIÓN (opcional)" value={cvF.descripcion} onChange={v=>setCvF(f=>({...f,descripcion:v}))}/><Btn onClick={gCV} color="#fbbf24" loading={gnd}>Guardar</Btn></>}
 
-            {modal==="cigG"&&<><div style={{fontSize:16,fontWeight:900,marginBottom:18}}>📦 Compra Cigarros</div><Inp label="FECHA" type="date" value={cgF.fecha} onChange={v=>setCgF(f=>({...f,fecha:v}))}/><div style={{marginBottom:14}}><Lbl>PROVEEDOR CIGARROS</Lbl><select value={cgF.proveedor} onChange={e=>setCgF(f=>({...f,proveedor:e.target.value}))} style={IS}><option value="">-- Seleccionar --</option>{pCig.map(p=><option key={p.id} value={p.nombre}>{p.nombre}</option>)}</select></div><Inp label="N° FACTURA" value={cgF.factura} onChange={v=>setCgF(f=>({...f,factura:v}))}/><Inp label="MONTO ($)" type="number" placeholder="0" value={cgF.monto} onChange={v=>setCgF(f=>({...f,monto:v}))}/><Btn onClick={gCG} color="#f87171" loading={gnd}>Guardar</Btn></>}
+            {modal==="cigG"&&<><div style={{fontSize:16,fontWeight:900,marginBottom:18}}>📦 Compra Cigarros</div><Inp label="FECHA" type="date" value={cgF.fecha} onChange={v=>setCgF(f=>({...f,fecha:v}))}/><div style={{marginBottom:14}}><Lbl>PROVEEDOR CIGARROS</Lbl><select value={cgF.proveedor} onChange={e=>setCgF(f=>({...f,proveedor:e.target.value}))} style={IS}><option value="">-- Seleccionar --</option>{pCig.map(p=><option key={p.id} value={p.nombre}>{p.nombre}</option>)}</select></div><Inp label="N° FACTURA" value={cgF.factura} onChange={v=>setCgF(f=>({...f,factura:v}))}/><Inp label="MONTO ($)" money value={cgF.monto} onChange={v=>setCgF(f=>({...f,monto:v}))}/><Btn onClick={gCG} color="#f87171" loading={gnd}>Guardar</Btn></>}
 
             {modal==="prov"&&<>
               <div style={{fontSize:16,fontWeight:900,marginBottom:4}}>{editProvId?"✏️ Editar Proveedor":"🏭 Nuevo Proveedor"}</div>
