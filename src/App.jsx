@@ -1,4 +1,4 @@
-// DUO Control de Negocios v3.2 — formato cifras, textos blancos, Mi Caja separado, cigarros sin duplicado, Caja Vecina mejorada, chat eliminar, gastos sucursal/admin separados, reporte con períodos, tab Pagos
+// DUO Control de Negocios v3.3 — formato cifras, textos blancos, Mi Caja separado, cigarros sin duplicado, Caja Vecina mejorada, chat eliminar, gastos sucursal/admin separados, reporte con períodos, tab Pagos
 // FAVICON: agregar en public/index.html: <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'><rect width='120' height='120' rx='28' fill='%231a1a2e'/><rect x='18' y='38' width='38' height='44' rx='8' fill='none' stroke='%23ffffff' stroke-width='3'/><rect x='64' y='38' width='38' height='44' rx='8' fill='none' stroke='%236c63ff' stroke-width='3'/><text x='60' y='102' font-family='sans-serif' font-size='13' font-weight='700' fill='%23ffffff' text-anchor='middle' letter-spacing='3'>DUO</text></svg>"> — legibilidad, editar días anteriores, formato cifras, cigarros semanal/mensual/anual, gastos pagador, alertas admin, gestión claves, caja vecina
 import { useState, useMemo, useEffect } from "react";
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from "recharts";
@@ -6,7 +6,7 @@ import { guardarFirebase, escucharFirebase } from './firebase';
 
 
 // ── ESTILOS ───────────────────────────────────────────────
-const IS = { width:"100%", padding:"11px 13px", borderRadius:10, boxSizing:"border-box", border:"1px solid #ffffff20", background:"#07090f", color:"#f0ece8", fontSize:14, outline:"none" };
+const IS = { width:"100%", padding:"11px 13px", borderRadius:10, boxSizing:"border-box", border:"1px solid #ffffff20", background:"#07090f", color:"#f0ece8", fontSize:14, outline:"none", colorScheme:"dark" };
 const GB = { background:"#f9731620", border:"1px solid #f9731640", color:"#f97316", padding:"8px 16px", borderRadius:10, cursor:"pointer", fontSize:12, fontWeight:700 };
 
 // ── CONSTANTES ────────────────────────────────────────────
@@ -167,7 +167,7 @@ function calcIVA(data,suc,mk) {
   const totalBol   = boletas.reduce((s,x)=>s+x.monto,0);
   const netoVentas = Math.round(totalBol/1.19);
   const ivaDebito  = totalBol - netoVentas;
-  const facturas   = [...filtroMes(data[suc]?.gastos||[],mk).filter(g=>g.categoria==="proveedor"&&g.factura),...filtroMes(data[suc]?.cigarros?.gastos||[],mk).filter(g=>g.factura)];
+  const facturas   = [...filtroMes(data[suc]?.gastos||[],mk).filter(g=>g.categoria==="proveedor"&&g.factura&&!g.sinFactura),...filtroMes(data[suc]?.cigarros?.gastos||[],mk).filter(g=>g.factura&&!g.sinFactura)];
   const totalFact  = facturas.reduce((s,g)=>s+g.monto,0);
   const netoCompras= Math.round(totalFact/1.19);
   const ivaCredito = totalFact - netoCompras;
@@ -322,7 +322,7 @@ export default function App(){
     // Favicon DUO
     const link=document.querySelector("link[rel='icon']")||document.createElement("link");
     link.rel="icon";link.type="image/svg+xml";
-    link.href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'><rect width='120' height='120' rx='28' fill='%231a1a2e'/><rect x='18' y='38' width='38' height='44' rx='8' fill='none' stroke='%23ffffff' stroke-width='3'/><rect x='64' y='38' width='38' height='44' rx='8' fill='none' stroke='%236c63ff' stroke-width='3'/><text x='60' y='102' font-family='sans-serif' font-size='13' font-weight='700' fill='%23ffffff' text-anchor='middle' letter-spacing='3'>DUO</text></svg>";
+    link.href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'><rect width='120' height='120' rx='28' fill='%23dc2626'/><rect x='18' y='38' width='38' height='44' rx='8' fill='none' stroke='%23ffffff' stroke-width='3'/><rect x='64' y='38' width='38' height='44' rx='8' fill='none' stroke='%23fca5a5' stroke-width='3'/><text x='60' y='102' font-family='sans-serif' font-size='13' font-weight='700' fill='%23ffffff' text-anchor='middle' letter-spacing='3'>DUO</text></svg>";
     if(!document.querySelector("link[rel='icon']"))document.head.appendChild(link);
     document.title="DUO Control de Negocios";
   },[]);
@@ -1808,8 +1808,8 @@ function VistaDueno({sesion,data,guardar,onSalir}){
   const chatNuevos=(data.chatDuenos||[]).filter(m=>m.de!==sesion.id).length;
 
   const PERIODOS=[{k:"dia",l:"Hoy"},{k:"semana",l:"Semana"},{k:"mes",l:"Mes"},{k:"año",l:"Año"},{k:"custom",l:"Rango"}];
-  const TABS=[["resumen","📊 Resumen"],["reporte","📋 Reporte"],["iva","🧾 IVA/PPM"],["tuu","💳 TUU"],["informes","📄 Informes"],["graficos","📈 Gráficos"],["gastos","💼 Gastos"],["trabajadores","👥 RRHH"],["mensajes","💬 Equipo"],["chat","🔒 Chat"],["notas","📝 Notas"],["notificar","📬 Notificar"],["carahue","🌿 Carahue"],["temuco","🏙️ Temuco"],["caja_vecina","🏦 Caja Vecina"],["usuarios","👤 Usuarios"],["pagos","💸 Pagos"]];
-  const SIN_FILTRO=["reporte","iva","tuu","informes","gastos","trabajadores","mensajes","chat","notas","notificar","caja_vecina","usuarios","pagos"];
+  const TABS=[["resumen","📊 Resumen"],["reporte","📋 Reporte"],["iva","🧾 IVA/PPM"],["tuu","💳 TUU"],["informes","📄 Informes"],["graficos","📈 Gráficos"],["gastos","💼 Gastos"],["trabajadores","👥 RRHH"],["mensajes","💬 Equipo"],["chat","🔒 Chat"],["notas","📝 Notas"],["notificar","📬 Notificar"],["carahue","🌿 Carahue"],["temuco","🏙️ Temuco"],["caja_vecina","🏦 Caja Vecina"],["usuarios","👤 Usuarios"],["pagos","💸 Pagos"],["reset","🗑️ Datos"]];
+  const SIN_FILTRO=["reporte","iva","tuu","informes","gastos","trabajadores","mensajes","chat","notas","notificar","caja_vecina","usuarios","pagos","reset"];
 
   const setFB=(suc,id,v)=>guardar({...data,fijosBase:{...data.fijosBase,[suc]:{...(data.fijosBase?.[suc]||{}),[id]:parseFloat(v)||0}}});
   const setFO=(mk,suc,id,v)=>{const o=JSON.parse(JSON.stringify(data.fijosOv||{}));if(!o[mk])o[mk]={};if(!o[mk][suc])o[mk][suc]={};o[mk][suc][id]=parseFloat(v)||0;guardar({...data,fijosOv:o});};
@@ -2044,6 +2044,7 @@ function VistaDueno({sesion,data,guardar,onSalir}){
         {tab==="caja_vecina"&&<PanelCajaVecina data={data} guardar={guardar}/>}
         {tab==="usuarios"&&<PanelUsuarios data={data} guardar={guardar}/>}
         {tab==="pagos"&&<PanelPagos sesion={sesion} data={data} guardar={guardar}/>}
+        {tab==="reset"&&<PanelReset data={data} guardar={guardar}/>}
       </div>
     </div>
   );
@@ -2103,6 +2104,7 @@ function PanelCajaVecina({data,guardar}){
   const [editId,setEditId]=useState(null);
   const [lineaEdit,setLineaEdit]=useState(false);
   const [lineaVal,setLineaVal]=useState("");
+  const [calDia,setCalDia]=useState(hoy());
   const cv=data.cajaVecina||{linea:0,movimientos:[]};
   const mov=cv.movimientos||[];
   const h2d=(d)=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
@@ -2113,6 +2115,7 @@ function PanelCajaVecina({data,guardar}){
     if(per==="mes")return arr.filter(x=>x.fecha.startsWith(hoy().slice(0,7)));
     if(per==="año")return arr.filter(x=>x.fecha.startsWith(hoy().slice(0,4)));
     if(per==="rango")return arr.filter(x=>x.fecha>=c1&&x.fecha<=c2);
+    if(per==="cal")return arr.filter(x=>x.fecha===calDia);
     return arr;
   };
   const movFilt=filtrar(mov);
@@ -2132,7 +2135,7 @@ function PanelCajaVecina({data,guardar}){
   };
   const eliminarMov=(id)=>{const nd=JSON.parse(JSON.stringify(data));nd.cajaVecina.movimientos=(nd.cajaVecina.movimientos||[]).filter(x=>x.id!==id);guardar(nd);};
   const actualizarLinea=()=>{const nd=JSON.parse(JSON.stringify(data));if(!nd.cajaVecina)nd.cajaVecina={linea:0,movimientos:[]};nd.cajaVecina.linea=parseFloat(String(lineaVal).replace(/\./g,""))||0;guardar(nd);setLineaEdit(false);};
-  const PERS=[["dia","Hoy"],["semana","Sem"],["mes","Mes"],["año","Año"],["rango","Rango"]];
+  const PERS=[["dia","Hoy"],["semana","Sem"],["mes","Mes"],["año","Año"],["rango","Rango"],["cal","📅"]];
   return(
     <div>
       <div style={{background:"#1e3a5f20",border:"1px solid #3b82f630",borderRadius:14,padding:"14px 16px",marginBottom:14}}>
@@ -2167,6 +2170,7 @@ function PanelCajaVecina({data,guardar}){
       </div>
       <div style={{display:"flex",gap:5,flexWrap:"wrap",marginBottom:10}}>{PERS.map(([k,l])=>(<button key={k} onClick={()=>setPer(k)} style={{padding:"5px 10px",borderRadius:20,border:"1px solid",borderColor:per===k?"#60a5fa":"#ffffff12",background:per===k?"#3b82f620":"transparent",color:per===k?"#60a5fa":"#ffffffcc",fontWeight:700,fontSize:11,fontWeight:700,cursor:"pointer"}}>{l}</button>))}</div>
       {per==="rango"&&<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:10}}><Inp label="DESDE" type="date" value={c1} onChange={setC1}/><Inp label="HASTA" type="date" value={c2} onChange={setC2}/></div>}
+      {per==="cal"&&<div style={{marginBottom:10}}><Lbl>SELECCIONAR DÍA</Lbl><input type="date" value={calDia} onChange={e=>setCalDia(e.target.value)} style={{...IS,maxWidth:220}}/></div>}
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:12}}>
         <div style={{background:"#f8717110",borderRadius:10,padding:"10px 8px",textAlign:"center"}}><div style={{fontSize:9,color:"#f8717166"}}>GIROS</div><div style={{fontSize:13,fontWeight:900,color:"#f87171"}}>{fmt(totalGiros)}</div></div>
         <div style={{background:"#22c55e10",borderRadius:10,padding:"10px 8px",textAlign:"center"}}><div style={{fontSize:9,color:"#4ade8066"}}>DEPÓSITOS</div><div style={{fontSize:13,fontWeight:900,color:"#4ade80"}}>{fmt(totalDepositos)}</div></div>
@@ -2343,6 +2347,66 @@ function PanelPagos({sesion,data,guardar}){
   );
 }
 
+
+// ── PANEL RESET DATOS ──
+function PanelReset({data,guardar}){
+  const [confirm,setConfirm]=useState("");
+  const [done,setDone]=useState(false);
+
+  const resetTodo=()=>{
+    if(confirm!=="RESETEAR")return;
+    const nd={
+      carahue:{ventas:[],gastos:[],proveedores:data.carahue?.proveedores||[],cigarros:{ventas:[],gastos:[]},boletas:[]},
+      temuco:{ventas:[],gastos:[],proveedores:data.temuco?.proveedores||[],cigarros:{ventas:[],gastos:[]},boletas:[]},
+      mensajes:[],chatDuenos:[],notas:[],
+      trabajadores:data.trabajadores||{},
+      cajaVecina:data.cajaVecina||{linea:0,movimientos:[]},
+      comision:data.comision||{},
+      fijosBase:data.fijosBase||{},varBase:data.varBase||{},
+      fijosExtra:data.fijosExtra||{},varExtra:data.varExtra||{},
+      sueldosDetalle:data.sueldosDetalle||{},
+      clavesPersonalizadas:data.clavesPersonalizadas||{},
+      tuu:data.tuu||{},
+    };
+    guardar(nd);setDone(true);setConfirm("");
+  };
+
+  const resetSuc=(suc)=>{
+    const nd=JSON.parse(JSON.stringify(data));
+    nd[suc]={ventas:[],gastos:[],proveedores:data[suc]?.proveedores||[],cigarros:{ventas:[],gastos:[]},boletas:[]};
+    guardar(nd);setDone(true);
+  };
+
+  return(
+    <div>
+      {done&&<div style={{background:"#22c55e15",border:"1px solid #22c55e30",borderRadius:10,padding:"10px 14px",marginBottom:14,fontSize:13,color:"#4ade80"}}>✅ Datos eliminados correctamente</div>}
+      <div style={{background:"#ef444415",border:"1px solid #ef444430",borderRadius:12,padding:"12px 14px",marginBottom:16}}>
+        <div style={{fontSize:12,fontWeight:800,color:"#f87171",marginBottom:6}}>⚠️ ZONA DE PELIGRO</div>
+        <div style={{fontSize:11,color:"#ffffff66",lineHeight:1.6}}>Elimina registros de prueba. Mantiene configuración (proveedores, sueldos, claves).</div>
+      </div>
+      <div style={{background:"#0d1525",borderRadius:14,padding:"14px 16px",marginBottom:12,border:"1px solid #ffffff0a"}}>
+        <div style={{fontSize:12,fontWeight:800,color:"#ffffffdd",marginBottom:12}}>Resetear por sucursal</div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+          <button onClick={()=>{if(window.confirm("¿Eliminar TODOS los registros de Carahue?"))resetSuc("carahue");}} style={{background:"#22c55e15",border:"1px solid #22c55e30",color:"#4ade80",padding:"10px",borderRadius:9,cursor:"pointer",fontSize:12,fontWeight:700}}>🌿 Limpiar Carahue</button>
+          <button onClick={()=>{if(window.confirm("¿Eliminar TODOS los registros de Temuco?"))resetSuc("temuco");}} style={{background:"#3b82f615",border:"1px solid #3b82f630",color:"#60a5fa",padding:"10px",borderRadius:9,cursor:"pointer",fontSize:12,fontWeight:700}}>🏙️ Limpiar Temuco</button>
+        </div>
+      </div>
+      <div style={{background:"#0d1525",borderRadius:14,padding:"14px 16px",marginBottom:12,border:"1px solid #ffffff0a"}}>
+        <div style={{fontSize:12,fontWeight:800,color:"#ffffffdd",marginBottom:10}}>Limpiar mensajes y chat</div>
+        <button onClick={()=>{if(window.confirm("¿Eliminar todos los mensajes?"))guardar({...data,mensajes:[],chatDuenos:[]});setDone(true);}} style={{background:"#8b5cf615",border:"1px solid #8b5cf630",color:"#a78bfa",padding:"10px",borderRadius:9,cursor:"pointer",fontSize:12,fontWeight:700,width:"100%"}}>🗑️ Eliminar mensajes</button>
+      </div>
+      <div style={{background:"#ef444410",border:"2px solid #ef444430",borderRadius:14,padding:"14px 16px"}}>
+        <div style={{fontSize:12,fontWeight:800,color:"#f87171",marginBottom:10}}>🗑️ Reset total</div>
+        <div style={{fontSize:11,color:"#ffffff55",marginBottom:10}}>Escribe <strong style={{color:"#f87171"}}>RESETEAR</strong> para confirmar:</div>
+        <input value={confirm} onChange={e=>setConfirm(e.target.value)} placeholder="RESETEAR" style={{...IS,marginBottom:12,borderColor:confirm==="RESETEAR"?"#f87171":"#ffffff15"}}/>
+        <button onClick={resetTodo} disabled={confirm!=="RESETEAR"} style={{background:confirm==="RESETEAR"?"#ef444420":"#ffffff08",border:`1px solid ${confirm==="RESETEAR"?"#ef444450":"#ffffff10"}`,color:confirm==="RESETEAR"?"#f87171":"#ffffff33",padding:"12px",borderRadius:9,cursor:confirm==="RESETEAR"?"pointer":"not-allowed",fontSize:13,fontWeight:800,width:"100%"}}>
+          🗑️ RESETEAR TODOS LOS DATOS DE PRUEBA
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ── VISTA VENDEDORA ───────────────────────────────────────
 function VistaVendedora({sesion,data,guardar,onSalir}){
   const suc=sesion.sucursal; const info=SUCS[suc];
@@ -2360,7 +2424,7 @@ function VistaVendedora({sesion,data,guardar,onSalir}){
   const upd=async(nd)=>{setGnd(true);guardar({...data,[suc]:nd});setGnd(false);};
 
   const eV={fecha:hoy(),tipo:"efectivo",monto:"",descripcion:""};
-  const eG={fecha:hoy(),categoria:"proveedor",proveedor:"",tienda:"",factura:"",monto:"",descripcion:"",pagadoPor:"sucursal"};
+  const eG={fecha:hoy(),categoria:"proveedor",proveedor:"",tienda:"",factura:"",sinFactura:false,monto:"",descripcion:"",pagadoPor:"sucursal"};
   const eCV={fecha:hoy(),monto:"",descripcion:""}; const eCG={fecha:hoy(),proveedor:"",factura:"",monto:"",descripcion:""};
   const eP={nombre:"",contacto:"",vendedor:"",categoria:"General",catPersonalizada:"",esCigarro:false}; const eB={fecha:hoy(),monto:""};
   const eVF={desde:"",hasta:"",motivo:""};
@@ -2876,7 +2940,18 @@ function VistaVendedora({sesion,data,guardar,onSalir}){
                 {CAT_GASTO.map(c=><option key={c.id} value={c.id}>{c.label}</option>)}
               </Sel>
               {catA?.req?(<div style={{marginBottom:14}}><Lbl>PROVEEDOR</Lbl><select value={gF.proveedor} onChange={e=>setGF(f=>({...f,proveedor:e.target.value}))} style={IS}><option value="">-- Seleccionar --</option>{pNrm.map(p=><option key={p.id} value={p.nombre}>{p.nombre}</option>)}</select>{pNrm.length===0&&<div style={{fontSize:10,color:"#f87171",marginTop:4}}>⚠️ Agrega proveedores primero</div>}</div>):(<Inp label="LUGAR / TIENDA" placeholder="Ej: Líder, Unimarc" value={gF.tienda} onChange={v=>setGF(f=>({...f,tienda:v}))}/>)}
-              <Inp label="N° FACTURA (opcional)" value={gF.factura} onChange={v=>setGF(f=>({...f,factura:v}))}/>
+              <div style={{marginBottom:14}}>
+              <div style={{display:"flex",alignItems:"center",gap:10,background:"#ffffff06",borderRadius:8,padding:"10px 12px",cursor:"pointer"}} onClick={()=>setGF(f=>({...f,sinFactura:!f.sinFactura,factura:""}))}>
+                <div style={{width:20,height:20,borderRadius:5,border:`2px solid ${gF.sinFactura?"#f97316":"#ffffff25"}`,background:gF.sinFactura?"#f9731620":"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                  {gF.sinFactura&&<span style={{fontSize:12,color:"#f97316"}}>✓</span>}
+                </div>
+                <div>
+                  <div style={{fontSize:12,fontWeight:700,color:gF.sinFactura?"#f97316":"#ffffffcc"}}>Sin factura (boleta o sin comprobante)</div>
+                  <div style={{fontSize:10,color:"#ffffff44",marginTop:1}}>No genera crédito de IVA</div>
+                </div>
+              </div>
+            </div>
+            {!gF.sinFactura&&<Inp label="N° FACTURA (opcional)" value={gF.factura} onChange={v=>setGF(f=>({...f,factura:v}))}/>}
               <Inp label="MONTO ($)" money value={gF.monto} onChange={v=>setGF(f=>({...f,monto:v}))}/>
               <Inp label="¿QUÉ SE COMPRÓ?" value={gF.descripcion} onChange={v=>setGF(f=>({...f,descripcion:v}))}/>
               <div style={{marginBottom:14}}>
